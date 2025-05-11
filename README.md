@@ -1,5 +1,17 @@
 # Обновление README.md
 
+## Сборка приложения
+
+```bash
+# Сборка для всех форматов по умолчанию
+pnpm tauri build
+
+# Сборка только DMG-пакета для macOS
+pnpm tauri build --bundles dmg
+```
+
+После сборки исполняемые файлы будут доступны в папке `src-tauri/target/release/bundle/`.
+
 ```language=markdown:clipboard-history-tauri/README.md
 # Clipboard History
 

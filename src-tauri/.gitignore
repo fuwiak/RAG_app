@@ -1,0 +1,87 @@
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock
+*.pdb
+
+# Tauri
+/src-tauri/target/
+/src-tauri/WixTools
+/src-tauri/Cargo.lock
+
+# Node.js
+/node_modules/
+/dist/
+/dist-electron/
+/.pnp
+.pnp.js
+.npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# Сборка
+/build/
+/out/
+
+# Среда разработки
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Редакторы и IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Логи и временные файлы
+*.log
+*.tmp
+*.temp
+.cache/
+
+# Тестирование
+/coverage/
+
+# Специфичные для macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Специфичные для Windows
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk

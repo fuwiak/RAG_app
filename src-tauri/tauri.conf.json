@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.tauri.app/v2",
+  "identifier": "com.example.clipboardhistory",
+  "productName": "Clipboard History",
+  "version": "0.1.0",
+
+  "build": {
+    "frontendDist": "../build",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "pnpm vite dev",
+    "beforeBuildCommand": "pnpm vite build"
+  },
+  
+  "app": {
+    "windows": [
+      { "label": "main", "title": "Clipboard History", "width": 400, "height": 300 }
+    ],
+    "trayIcon": { "iconPath": "icons/32x32.png", "iconAsTemplate": true },
+    "withGlobalTauri": true
+  }
+}

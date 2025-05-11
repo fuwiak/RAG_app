@@ -129,9 +129,20 @@ fn main() {
                 })
                 .build(app)?;
 
+            // 4. Настройка автозапуска для macOS
+            #[cfg(target_os = "macos")]
+            {
+                // В Tauri 2.x используем другой подход для автозапуска
+                let app_handle = app.app_handle().clone();
+                let _ = app_handle.set_activation_policy(tauri::ActivationPolicy::Accessory);
+                
+                // Для автозапуска можно использовать системные средства macOS
+                // или сторонние библиотеки, например, auto-launch
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![get_history, copy_to_clipboard])
         .run(tauri::generate_context!())
-        .expect("error while running tauri app");
+        .expect("Ошибка при запуске приложения");
 }

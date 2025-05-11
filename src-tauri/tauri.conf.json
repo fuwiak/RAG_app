@@ -11,11 +11,39 @@
     "beforeBuildCommand": "pnpm vite build"
   },
   
+  "bundle": {
+    "active": true,
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "targets": ["dmg", "app"],
+    "macOS": {
+      "frameworks": [],
+      "minimumSystemVersion": "10.13",
+      "exceptionDomain": "",
+      "signingIdentity": null,
+      "entitlements": null
+    },
+    "copyright": "© 2024 Ваше имя",
+    "category": "Utilities",
+    "shortDescription": "Управление историей буфера обмена",
+    "longDescription": "Приложение для хранения и управления историей скопированных элементов"
+  },
+
   "app": {
     "windows": [
       { "label": "main", "title": "Clipboard History", "width": 400, "height": 300 }
     ],
-    "trayIcon": { "iconPath": "icons/32x32.png", "iconAsTemplate": true },
-    "withGlobalTauri": true
+    "trayIcon": { 
+      "iconPath": "icons/32x32.png", 
+      "iconAsTemplate": true,
+      "menuOnLeftClick": true
+    },
+    "withGlobalTauri": true,
+    "macOSPrivateApi": true
+  },
+  
+  "plugins": {
+    "shell": {
+      "open": true
+    }
   }
 }

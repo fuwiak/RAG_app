@@ -4,12 +4,26 @@
   import { listen } from '@tauri-apps/api/event';
 
   let clipboardItems: string[] = [];
+  let filteredItems: string[] = [];
+  let searchQuery = '';
 
   async function loadHistory() {
     try {
       clipboardItems = await invoke<string[]>('get_history');
+      filterItems();
     } catch (error) {
       console.error('Ошибка загрузки истории:', error);
+    }
+  }
+
+  function filterItems() {
+    if (!searchQuery.trim()) {
+      filteredItems = [...clipboardItems];
+    } else {
+      const query = searchQuery.toLowerCase();
+      filteredItems = clipboardItems.filter(item => 
+        item.toLowerCase().includes(query)
+      );
     }
   }
 
@@ -19,6 +33,11 @@
     } catch (error) {
       console.error('Ошибка копирования:', error);
     }
+  }
+
+  // Обработчик изменения поискового запроса
+  function handleSearchInput() {
+    filterItems();
   }
 
   onMount(() => {
@@ -43,12 +62,21 @@
 <main>
   <h1>Clipboard History</h1>
   
+  <div class="search-container">
+    <input 
+      type="text" 
+      placeholder="Поиск в истории..." 
+      bind:value={searchQuery}
+      on:input={handleSearchInput}
+    />
+  </div>
+  
   <div class="history-container">
-    {#if clipboardItems.length === 0}
-      <p>История буфера обмена пуста</p>
+    {#if filteredItems.length === 0}
+      <p>История буфера обмена пуста или ничего не найдено</p>
     {:else}
       <ul>
-        {#each clipboardItems as item, i}
+        {#each filteredItems as item, i}
           <li>
             <div class="item-content">{item}</div>
             <button on:click={() => copyToClipboard(item)}>
@@ -66,6 +94,18 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     padding: 1rem;
     max-width: 100%;
+  }
+  
+  .search-container {
+    margin-bottom: 1rem;
+  }
+  
+  input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
   }
   
   .history-container {

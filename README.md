@@ -49,7 +49,9 @@ Clipboard History lets you save previously copied items and quickly restore them
 
 ## Installing dependencies
 
+```
 
+```bash
 pnpm install
 ```
 

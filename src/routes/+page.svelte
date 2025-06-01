@@ -259,7 +259,8 @@
 
   .history-section,
   .saved-section {
-    flex: 1;
+    flex: 1 1 50%;
+    max-width: 50%;
   }
 
   .saved-container {

@@ -52,6 +52,37 @@ fn copy_to_clipboard(text: String) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn get_saved(db_state: tauri::State<'_, Arc<Mutex<Connection>>>) -> Result<Vec<String>, String> {
+    let rows = {
+        let db = db_state.lock().map_err(|e| e.to_string())?;
+        let mut stmt = db
+            .prepare("SELECT text FROM saved ORDER BY rowid DESC")
+            .map_err(|e| e.to_string())?;
+        let iter = stmt
+            .query_map([], |row| row.get::<_, String>(0))
+            .map_err(|e| e.to_string())?;
+        iter.filter_map(Result::ok).collect::<Vec<_>>()
+    };
+    Ok(rows)
+}
+
+#[tauri::command]
+fn add_saved(text: String, db_state: tauri::State<'_, Arc<Mutex<Connection>>>) -> Result<(), String> {
+    let db = db_state.lock().map_err(|e| e.to_string())?;
+    db.execute("INSERT OR IGNORE INTO saved (text) VALUES (?)", params![text])
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn remove_saved(text: String, db_state: tauri::State<'_, Arc<Mutex<Connection>>>) -> Result<(), String> {
+    let db = db_state.lock().map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM saved WHERE text = ?", params![text])
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
+
 // ---------- main ------------------------------------------------------------
 
 fn main() {
@@ -63,6 +94,10 @@ fn main() {
             let conn = Connection::open(data_dir.join("history.db"))?;
             conn.execute(
                 "CREATE TABLE IF NOT EXISTS clip (ts REAL PRIMARY KEY, text TEXT)",
+                [],
+            )?;
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS saved (text TEXT PRIMARY KEY)",
                 [],
             )?;
             let db = Arc::new(Mutex::new(conn));
@@ -142,7 +177,13 @@ fn main() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![get_history, copy_to_clipboard])
+        .invoke_handler(tauri::generate_handler![
+            get_history,
+            copy_to_clipboard,
+            get_saved,
+            add_saved,
+            remove_saved
+        ])
         .run(tauri::generate_context!())
         .expect("Ошибка при запуске приложения");
 }

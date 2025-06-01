@@ -6,6 +6,26 @@
   let clipboardItems: string[] = [];
   let filteredItems: string[] = [];
   let searchQuery = '';
+  let language: 'en' | 'ru' = 'en';
+
+  const texts = {
+    en: {
+      title: 'Clipboard History',
+      search: 'Search history...',
+      empty: 'Clipboard history is empty or nothing found',
+      copy: 'Copy'
+    },
+    ru: {
+      title: 'История буфера обмена',
+      search: 'Поиск в истории...',
+      empty: 'История буфера обмена пуста или ничего не найдено',
+      copy: 'Копировать'
+    }
+  } as const;
+
+  function toggleLanguage() {
+    language = language === 'en' ? 'ru' : 'en';
+  }
 
   async function loadHistory() {
     try {
@@ -60,12 +80,17 @@
 </script>
 
 <main>
-  <h1>Clipboard History</h1>
+  <div class="language-toggle">
+    <button on:click={toggleLanguage}>
+      {language === 'en' ? 'Русский' : 'English'}
+    </button>
+  </div>
+  <h1>{texts[language].title}</h1>
   
   <div class="search-container">
-    <input 
-      type="text" 
-      placeholder="Поиск в истории..." 
+    <input
+      type="text"
+      placeholder={texts[language].search}
       bind:value={searchQuery}
       on:input={handleSearchInput}
     />
@@ -73,14 +98,14 @@
   
   <div class="history-container">
     {#if filteredItems.length === 0}
-      <p>История буфера обмена пуста или ничего не найдено</p>
+      <p>{texts[language].empty}</p>
     {:else}
       <ul>
         {#each filteredItems as item, i}
           <li>
             <div class="item-content">{item}</div>
             <button on:click={() => copyToClipboard(item)}>
-              Копировать
+              {texts[language].copy}
             </button>
           </li>
         {/each}
@@ -150,5 +175,9 @@
   
   button:hover {
     background: #0070d1;
+  }
+
+  .language-toggle {
+    margin-bottom: 1rem;
   }
 </style>

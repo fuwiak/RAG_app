@@ -13,6 +13,7 @@ use tauri::{
     menu::{MenuBuilder, MenuItemBuilder},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager, Runtime,
+    Size, PhysicalSize,
 };
 
 // ---------- helper ----------------------------------------------------------
@@ -83,6 +84,25 @@ fn remove_saved(text: String, db_state: tauri::State<'_, Arc<Mutex<Connection>>>
         .map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn get_terminal_history() -> Result<Vec<String>, String> {
+    let home = std::env::var("HOME").map_err(|e| e.to_string())?;
+    for file in [".bash_history", ".zsh_history"] {
+        let path = std::path::Path::new(&home).join(file);
+        if path.exists() {
+            let content = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
+            let lines = content
+                .lines()
+                .rev()
+                .take(20)
+                .map(|s| s.to_string())
+                .collect();
+            return Ok(lines);
+        }
+    }
+    Err("History file not found".into())
+}
+
 // ---------- main ------------------------------------------------------------
 
 fn main() {
@@ -102,6 +122,17 @@ fn main() {
             )?;
             let db = Arc::new(Mutex::new(conn));
             app.manage(db.clone());
+
+            // ensure window occupies at least 40% of the screen
+            if let Some(window) = app.get_webview_window("main") {
+                if let Ok(Some(monitor)) = window.current_monitor() {
+                    let size = monitor.size();
+                    let width = (size.width as f64 * 0.4) as u32;
+                    let height = (size.height as f64 * 0.4) as u32;
+                    let _ = window.set_size(Size::Physical(PhysicalSize { width, height }));
+                    let _ = window.set_min_size(Some(Size::Physical(PhysicalSize { width, height })));
+                }
+            }
 
             // 2.  clipboard poller ('static) ----------------------------------
             let app_handle: AppHandle<_> = app.app_handle().clone(); // ← `'static`
@@ -182,7 +213,8 @@ fn main() {
             copy_to_clipboard,
             get_saved,
             add_saved,
-            remove_saved
+            remove_saved,
+            get_terminal_history
         ])
         .run(tauri::generate_context!())
         .expect("Ошибка при запуске приложения");

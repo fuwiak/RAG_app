@@ -7,19 +7,27 @@
   let filteredItems: string[] = [];
   let searchQuery = '';
   let language: 'en' | 'ru' = 'en';
+  let savedItems: string[] = [];
+  let savedInput = '';
 
   const texts = {
     en: {
-      title: 'Clipboard History',
+      historyTitle: 'Clipboard History',
+      savedTitle: 'Saved Items',
       search: 'Search history...',
       empty: 'Clipboard history is empty or nothing found',
-      copy: 'Copy'
+      copy: 'Copy',
+      add: 'Add',
+      remove: 'Remove'
     },
     ru: {
-      title: 'История буфера обмена',
+      historyTitle: 'История буфера обмена',
+      savedTitle: 'Сохранённое',
       search: 'Поиск в истории...',
       empty: 'История буфера обмена пуста или ничего не найдено',
-      copy: 'Копировать'
+      copy: 'Копировать',
+      add: 'Добавить',
+      remove: 'Удалить'
     }
   } as const;
 
@@ -55,6 +63,35 @@
     }
   }
 
+  async function loadSaved() {
+    try {
+      savedItems = await invoke<string[]>('get_saved');
+    } catch (error) {
+      console.error('Ошибка загрузки избранного:', error);
+    }
+  }
+
+  async function addToSaved() {
+    const text = savedInput.trim();
+    if (!text) return;
+    try {
+      await invoke('add_saved', { text });
+      savedInput = '';
+      loadSaved();
+    } catch (error) {
+      console.error('Ошибка сохранения:', error);
+    }
+  }
+
+  async function removeSavedItem(text: string) {
+    try {
+      await invoke('remove_saved', { text });
+      loadSaved();
+    } catch (error) {
+      console.error('Ошибка удаления:', error);
+    }
+  }
+
   // Обработчик изменения поискового запроса
   function handleSearchInput() {
     filterItems();
@@ -63,6 +100,7 @@
   onMount(() => {
     // Загружаем историю сразу
     loadHistory();
+    loadSaved();
     
     // Переменная для хранения функции отписки
     let cleanup: (() => void) | undefined;
@@ -85,32 +123,65 @@
       {language === 'en' ? 'Русский' : 'English'}
     </button>
   </div>
-  <h1>{texts[language].title}</h1>
-  
-  <div class="search-container">
-    <input
-      type="text"
-      placeholder={texts[language].search}
-      bind:value={searchQuery}
-      on:input={handleSearchInput}
-    />
-  </div>
-  
-  <div class="history-container">
-    {#if filteredItems.length === 0}
-      <p>{texts[language].empty}</p>
-    {:else}
-      <ul>
-        {#each filteredItems as item, i}
-          <li>
-            <div class="item-content">{item}</div>
-            <button on:click={() => copyToClipboard(item)}>
-              {texts[language].copy}
-            </button>
-          </li>
-        {/each}
-      </ul>
-    {/if}
+  <div class="containers">
+    <div class="history-section">
+      <h1>{texts[language].historyTitle}</h1>
+      <div class="search-container">
+        <input
+          type="text"
+          placeholder={texts[language].search}
+          bind:value={searchQuery}
+          on:input={handleSearchInput}
+        />
+      </div>
+      <div class="history-container">
+        {#if filteredItems.length === 0}
+          <p>{texts[language].empty}</p>
+        {:else}
+          <ul>
+            {#each filteredItems as item, i}
+              <li>
+                <div class="item-content">{item}</div>
+                <button on:click={() => copyToClipboard(item)}>
+                  {texts[language].copy}
+                </button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      </div>
+    </div>
+
+    <div class="saved-section">
+      <h1>{texts[language].savedTitle}</h1>
+      <div class="add-container">
+        <input
+          type="text"
+          placeholder={texts[language].add}
+          bind:value={savedInput}
+        />
+        <button on:click={addToSaved}>{texts[language].add}</button>
+      </div>
+      <div class="saved-container">
+        {#if savedItems.length === 0}
+          <p>{texts[language].empty}</p>
+        {:else}
+          <ul>
+            {#each savedItems as item}
+              <li>
+                <div class="item-content">{item}</div>
+                <button on:click={() => copyToClipboard(item)}>
+                  {texts[language].copy}
+                </button>
+                <button on:click={() => removeSavedItem(item)}>
+                  {texts[language].remove}
+                </button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      </div>
+    </div>
   </div>
 </main>
 
@@ -178,6 +249,31 @@
   }
 
   .language-toggle {
+    margin-bottom: 1rem;
+  }
+
+  .containers {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .history-section,
+  .saved-section {
+    flex: 1;
+  }
+
+  .saved-container {
+    margin-top: 1rem;
+    max-height: 80vh;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0.5rem;
+  }
+
+  .add-container {
+    display: flex;
+    gap: 0.5rem;
     margin-bottom: 1rem;
   }
 </style>

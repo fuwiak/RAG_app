@@ -9,11 +9,13 @@
   let language: 'en' | 'ru' = 'en';
   let savedItems: string[] = [];
   let savedInput = '';
+  let terminalItems: string[] = [];
 
   const texts = {
     en: {
       historyTitle: 'Clipboard History',
       savedTitle: 'Saved Items',
+      terminalTitle: 'Terminal History',
       search: 'Search history...',
       empty: 'Clipboard history is empty or nothing found',
       copy: 'Copy',
@@ -23,6 +25,7 @@
     ru: {
       historyTitle: 'История буфера обмена',
       savedTitle: 'Сохранённое',
+      terminalTitle: 'История терминала',
       search: 'Поиск в истории...',
       empty: 'История буфера обмена пуста или ничего не найдено',
       copy: 'Копировать',
@@ -92,6 +95,14 @@
     }
   }
 
+  async function loadTerminalHistory() {
+    try {
+      terminalItems = await invoke<string[]>('get_terminal_history');
+    } catch (error) {
+      console.error('Ошибка загрузки истории терминала:', error);
+    }
+  }
+
   // Обработчик изменения поискового запроса
   function handleSearchInput() {
     filterItems();
@@ -101,6 +112,7 @@
     // Загружаем историю сразу
     loadHistory();
     loadSaved();
+    loadTerminalHistory();
     
     // Переменная для хранения функции отписки
     let cleanup: (() => void) | undefined;
@@ -175,6 +187,25 @@
                 </button>
                 <button on:click={() => removeSavedItem(item)}>
                   {texts[language].remove}
+                </button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      </div>
+    </div>
+    <div class="terminal-section">
+      <h1>{texts[language].terminalTitle}</h1>
+      <div class="terminal-container">
+        {#if terminalItems.length === 0}
+          <p>{texts[language].empty}</p>
+        {:else}
+          <ul>
+            {#each terminalItems as item}
+              <li>
+                <div class="item-content">{item}</div>
+                <button on:click={() => copyToClipboard(item)}>
+                  {texts[language].copy}
                 </button>
               </li>
             {/each}
@@ -258,12 +289,22 @@
   }
 
   .history-section,
-  .saved-section {
-    flex: 1 1 50%;
-    max-width: 50%;
+  .saved-section,
+  .terminal-section {
+    flex: 1 1 33%;
+    max-width: 33%;
   }
 
   .saved-container {
+    margin-top: 1rem;
+    max-height: 80vh;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0.5rem;
+  }
+
+  .terminal-container {
     margin-top: 1rem;
     max-height: 80vh;
     overflow-y: auto;

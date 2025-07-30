@@ -14,11 +14,11 @@
 
   const texts = {
     en: {
-      historyTitle: 'Clipboard History',
+      historyTitle: 'RAG Documents',
       savedTitle: 'Saved Items',
       terminalTitle: 'Terminal History',
       search: 'Search history...',
-      empty: 'Clipboard history is empty or nothing found',
+      empty: 'No documents uploaded or nothing found',
       copy: 'Copy',
       add: 'Add',
       remove: 'Remove'

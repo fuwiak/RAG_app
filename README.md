@@ -86,6 +86,36 @@ After launching this way once, the application will open normally in the future.
 3. Run in development mode with `pnpm tauri dev`
 4. Upload your documents and start asking questions!
 
+## Troubleshooting
+
+### Port 1420 Already in Use
+
+If you encounter an error saying "Port 1420 is already in use" when running `pnpm tauri dev`, you can kill the process using that port:
+
+```bash
+kill -9 $(lsof -ti:1420)
+```
+
+Then try running the development server again:
+
+```bash
+pnpm tauri dev
+```
+
+### Node.js Version Issues
+
+Make sure you're using Node.js version 18 or higher. You can check your version with:
+
+```bash
+node --version
+```
+
+If you're using conda, you can update Node.js with:
+
+```bash
+conda install nodejs=20 -y
+```
+
 ## Contributing
 
 We welcome contributions! Please feel free to submit a Pull Request.

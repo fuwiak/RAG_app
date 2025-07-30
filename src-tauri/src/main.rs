@@ -119,7 +119,7 @@ fn start_fine_tune(app: AppHandle, config: String) -> Result<(), String> {
             let reader = BufReader::new(stdout);
             for line in reader.lines() {
                 if let Ok(line) = line {
-                    let _ = app.emit_all("training_progress", line.clone());
+                    let _ = app.emit("training_progress", line.clone());
                 }
             }
         }

@@ -1,8 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
-  import { open } from '@tauri-apps/plugin-dialog';
-
   // Types
   interface Document {
     id: string;
@@ -62,32 +60,36 @@
   }
 
   // Document upload
-  async function uploadDocument() {
-    try {
-      const selected = await open({
-        multiple: false,
-        filters: [
-          {
-            name: 'Documents',
-            extensions: ['pdf', 'txt', 'md']
-          }
-        ]
-      });
-
-      if (selected) {
+  let fileInput: HTMLInputElement;
+  
+  function triggerFileUpload() {
+    fileInput?.click();
+  }
+  
+  async function handleFileUpload(event: Event) {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0];
+    
+    if (file) {
+      try {
         isLoading = true;
+        // For demo purposes, we'll use the file name as the file path
+        // In a real app, you'd upload the file to a server or save it locally
         const document = await invoke<Document>('upload_document', {
-          filePath: selected,
-          title: null
+          filePath: file.name,
+          title: file.name
         });
         
         documents = [document, ...documents];
         isLoading = false;
+      } catch (error) {
+        console.error('Error uploading document:', error);
+        isLoading = false;
       }
-    } catch (error) {
-      console.error('Error uploading document:', error);
-      isLoading = false;
     }
+    
+    // Reset the input
+    target.value = '';
   }
 
   // File drop handling
@@ -253,14 +255,14 @@
       {#if selectedTab === 'chat'}
         <div class="chat-container">
           {#if documents.length === 0}
-            <div class="empty-state">
-              <div class="empty-icon">📚</div>
-              <h3>No documents uploaded yet</h3>
-              <p>Upload some documents to start chatting with your knowledge base.</p>
-              <button class="primary-button" on:click={uploadDocument}>
-                📎 Upload Document
-              </button>
-            </div>
+                         <div class="empty-state">
+               <div class="empty-icon">📚</div>
+               <h3>No documents uploaded yet</h3>
+               <p>Upload some documents to start chatting with your knowledge base.</p>
+               <button class="primary-button" on:click={triggerFileUpload}>
+                 📎 Upload Document
+               </button>
+             </div>
           {:else}
             <div class="chat-messages">
               {#if chatMessages.length === 0}
@@ -317,20 +319,25 @@
       <!-- Documents Tab -->
       {:else if selectedTab === 'documents'}
         <div class="documents-container">
-          <div class="documents-header">
-            <h2>Document Library</h2>
-            <button class="primary-button" on:click={uploadDocument}>
-              📎 Upload Document
-            </button>
-          </div>
+                     <div class="documents-header">
+             <h2>Document Library</h2>
+             <button class="primary-button" on:click={triggerFileUpload}>
+               📎 Upload Document
+             </button>
+           </div>
           
           <!-- Upload area -->
-          <div 
-            class="upload-area {isDragOver ? 'drag-over' : ''}"
-            on:drop={handleDrop}
-            on:dragover={handleDragOver}
-            on:dragleave={handleDragLeave}
-          >
+                     <div 
+             class="upload-area {isDragOver ? 'drag-over' : ''}"
+             role="button"
+             tabindex="0"
+             aria-label="Drag and drop files here or click to upload"
+             on:drop={handleDrop}
+             on:dragover={handleDragOver}
+             on:dragleave={handleDragLeave}
+             on:click={triggerFileUpload}
+             on:keydown={(e) => e.key === 'Enter' && triggerFileUpload()}
+           >
             <div class="upload-content">
               <div class="upload-icon">📁</div>
               <p>Drag and drop documents here or click to upload</p>
@@ -426,10 +433,19 @@
             </div>
           {/if}
         </div>
-      {/if}
-    </div>
-  </div>
-</main>
+             {/if}
+     </div>
+   </div>
+   
+   <!-- Hidden file input -->
+   <input
+     type="file"
+     bind:this={fileInput}
+     on:change={handleFileUpload}
+     accept=".pdf,.txt,.md"
+     style="display: none;"
+   />
+ </main>
 
 <style>
   :global(body) {

@@ -538,6 +538,9 @@ fn delete_document(
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .setup(|app| {
             // Initialize database
             let data_dir = app_data_dir(&app.app_handle())?;

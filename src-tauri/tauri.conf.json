@@ -22,10 +22,10 @@
       "signingIdentity": null,
       "entitlements": null
     },
-    "copyright": "© 2024 Ваше имя",
-    "category": "Utilities",
-    "shortDescription": "Управление историей буфера обмена",
-    "longDescription": "Приложение для хранения и управления историей скопированных элементов"
+    "copyright": "© 2024 RAG App",
+    "category": "Productivity",
+    "shortDescription": "Retrieval-Augmented Generation Application",
+    "longDescription": "Desktop application for document retrieval and AI-powered question answering using RAG technology"
   },
 
   "app": {

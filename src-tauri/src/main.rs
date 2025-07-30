@@ -4,6 +4,7 @@ use std::{
     collections::HashMap,
     path::PathBuf,
     sync::{Arc, Mutex},
+    io::Read,
 };
 
 use anyhow::Result;
@@ -13,8 +14,83 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Emitter, Manager};
 use uuid::Uuid;
+use text_splitter::{TextSplitter, ChunkConfig};
+use csv::Reader;
+use docx_rs::read_docx;
 
-// ---------- Data Models ------------------------------------------------------------
+// ---------- Enhanced RAG Data Models -----------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum EmbeddingModel {
+    #[serde(rename = "huggingface")]
+    HuggingFace { model_name: String },
+    #[serde(rename = "openai")]
+    OpenAI { api_key: String, model: String },
+    #[serde(rename = "local")]
+    Local { model_path: String },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum RAGMode {
+    #[serde(rename = "fine_tuned_only")]
+    FineTunedOnly,
+    #[serde(rename = "fine_tuned_rag")]
+    FineTunedWithRAG,
+    #[serde(rename = "base_rag")]
+    BaseWithRAG,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RAGConfig {
+    pub embedding_model: EmbeddingModel,
+    pub mode: RAGMode,
+    pub chunk_size: usize,
+    pub chunk_overlap: usize,
+    pub top_k: usize,
+    pub similarity_threshold: f32,
+}
+
+impl Default for RAGConfig {
+    fn default() -> Self {
+        Self {
+            embedding_model: EmbeddingModel::HuggingFace { 
+                model_name: "sentence-transformers/all-MiniLM-L6-v2".to_string() 
+            },
+            mode: RAGMode::BaseWithRAG,
+            chunk_size: 200,
+            chunk_overlap: 50,
+            top_k: 5,
+            similarity_threshold: 0.3,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProcessingResult {
+    pub success: bool,
+    pub message: String,
+    pub chunks_created: usize,
+    pub processing_time_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RetrievalResult {
+    pub chunk_id: String,
+    pub content: String,
+    pub document_title: String,
+    pub similarity_score: f32,
+    pub source_info: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RAGResponse {
+    pub answer: String,
+    pub retrieved_context: Vec<RetrievalResult>,
+    pub mode_used: RAGMode,
+    pub processing_time_ms: u64,
+}
+
+// ---------- Original Data Models ---------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Document {
@@ -74,28 +150,21 @@ fn calculate_content_hash(content: &str) -> String {
     hex::encode(hasher.finalize())
 }
 
+fn chunk_text_with_config(text: &str, config: &RAGConfig) -> Vec<String> {
+    let splitter = TextSplitter::new(ChunkConfig::new(config.chunk_size)
+        .with_overlap(config.chunk_overlap)
+        .with_trim(true));
+    
+    splitter.chunks(text).map(|s| s.to_string()).collect()
+}
+
 fn chunk_text(text: &str, chunk_size: usize, overlap: usize) -> Vec<String> {
-    let words: Vec<&str> = text.split_whitespace().collect();
-    if words.len() <= chunk_size {
-        return vec![text.to_string()];
-    }
-
-    let mut chunks = Vec::new();
-    let mut start = 0;
-
-    while start < words.len() {
-        let end = std::cmp::min(start + chunk_size, words.len());
-        let chunk = words[start..end].join(" ");
-        chunks.push(chunk);
-
-        if end == words.len() {
-            break;
-        }
-
-        start = end - overlap;
-    }
-
-    chunks
+    let config = RAGConfig {
+        chunk_size,
+        chunk_overlap: overlap,
+        ..Default::default()
+    };
+    chunk_text_with_config(text, &config)
 }
 
 async fn extract_text_from_file(file_path: &str) -> Result<String> {
@@ -116,17 +185,189 @@ async fn extract_text_from_file(file_path: &str) -> Result<String> {
                 Err(_) => Ok("Could not extract text from PDF".to_string()),
             }
         }
+        "docx" => {
+            // Extract text from DOCX
+            match extract_docx_text(file_path).await {
+                Ok(text) => Ok(text),
+                Err(e) => Ok(format!("Could not extract text from DOCX: {}", e)),
+            }
+        }
+        "csv" => {
+            // Extract text from CSV
+            match extract_csv_text(file_path).await {
+                Ok(text) => Ok(text),
+                Err(e) => Ok(format!("Could not extract text from CSV: {}", e)),
+            }
+        }
         _ => Ok(format!("Unsupported file type: {}", extension)),
     }
 }
 
-// Mock embedding function - in production, use proper embedding models
-fn generate_embedding(_text: &str) -> Vec<f32> {
-    // This is a mock - in real implementation, you'd use:
-    // - OpenAI embeddings API
-    // - Local embedding models (sentence-transformers, etc.)
-    // - Candle-based models
-    (0..384).map(|i| (i as f32 * 0.001).sin()).collect()
+async fn extract_docx_text(file_path: &str) -> Result<String> {
+    let mut file = std::fs::File::open(file_path)?;
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)?;
+    
+    match read_docx(&buffer) {
+        Ok(docx) => {
+            let mut text = String::new();
+            for paragraph in docx.document.body.children {
+                if let docx_rs::DocumentChild::Paragraph(p) = paragraph {
+                    for child in p.children {
+                        if let docx_rs::ParagraphChild::Run(run) = child {
+                            for run_child in run.children {
+                                if let docx_rs::RunChild::Text(t) = run_child {
+                                    text.push_str(&t.text);
+                                }
+                            }
+                        }
+                    }
+                    text.push('\n');
+                }
+            }
+            Ok(text)
+        }
+        Err(e) => Err(anyhow::anyhow!("Failed to parse DOCX: {}", e))
+    }
+}
+
+async fn extract_csv_text(file_path: &str) -> Result<String> {
+    let mut reader = Reader::from_path(file_path)?;
+    let mut text = String::new();
+    
+    // Add headers if available
+    if let Ok(headers) = reader.headers() {
+        text.push_str(&headers.iter().collect::<Vec<_>>().join(" | "));
+        text.push('\n');
+    }
+    
+    // Add data rows
+    for result in reader.records() {
+        let record = result?;
+        text.push_str(&record.iter().collect::<Vec<_>>().join(" | "));
+        text.push('\n');
+    }
+    
+    Ok(text)
+}
+
+// Enhanced embedding generation with multiple model support
+async fn generate_embedding_with_config(text: &str, config: &RAGConfig) -> Result<Vec<f32>> {
+    match &config.embedding_model {
+        EmbeddingModel::HuggingFace { model_name } => {
+            generate_huggingface_embedding(text, model_name).await
+        }
+        EmbeddingModel::OpenAI { api_key, model } => {
+            generate_openai_embedding(text, api_key, model).await
+        }
+        EmbeddingModel::Local { model_path } => {
+            generate_local_embedding(text, model_path).await
+        }
+    }
+}
+
+async fn generate_huggingface_embedding(text: &str, model_name: &str) -> Result<Vec<f32>> {
+    // For now, use a simple mock - in production, integrate with HuggingFace API
+    // or load model locally using candle/tch
+    println!("Generating HuggingFace embedding with model: {}", model_name);
+    
+    // Mock embedding that varies based on text content
+    let hash = sha2::Sha256::digest(text.as_bytes());
+    let mut embedding = Vec::with_capacity(384);
+    
+    for (i, &byte) in hash.as_slice().iter().take(24).cycle().take(384).enumerate() {
+        let value = (byte as f32 / 255.0) * 2.0 - 1.0; // Normalize to [-1, 1]
+        let modified = value * (i as f32 * 0.01).sin();
+        embedding.push(modified);
+    }
+    
+    Ok(normalize_vector(embedding))
+}
+
+async fn generate_openai_embedding(text: &str, api_key: &str, model: &str) -> Result<Vec<f32>> {
+    let client = reqwest::Client::new();
+    
+    let request_body = serde_json::json!({
+        "input": text,
+        "model": model
+    });
+    
+    let response = client
+        .post("https://api.openai.com/v1/embeddings")
+        .header("Authorization", format!("Bearer {}", api_key))
+        .header("Content-Type", "application/json")
+        .json(&request_body)
+        .send()
+        .await?;
+    
+    if response.status().is_success() {
+        let response_json: serde_json::Value = response.json().await?;
+        if let Some(data) = response_json["data"].as_array() {
+            if let Some(embedding_data) = data.get(0) {
+                if let Some(embedding_array) = embedding_data["embedding"].as_array() {
+                    let embedding: Vec<f32> = embedding_array
+                        .iter()
+                        .filter_map(|v| v.as_f64().map(|f| f as f32))
+                        .collect();
+                    return Ok(embedding);
+                }
+            }
+        }
+    }
+    
+    Err(anyhow::anyhow!("Failed to get embedding from OpenAI API"))
+}
+
+async fn generate_local_embedding(text: &str, _model_path: &str) -> Result<Vec<f32>> {
+    // For now, use a sophisticated mock - in production, load local model
+    println!("Generating local embedding from model path");
+    
+    // Create a more sophisticated mock based on text characteristics
+    let words: Vec<&str> = text.split_whitespace().collect();
+    let mut embedding = Vec::with_capacity(384);
+    
+    for i in 0..384 {
+        let mut value = 0.0;
+        
+        // Base value from text length
+        value += (text.len() as f32 / 1000.0).sin();
+        
+        // Add word count influence
+        value += (words.len() as f32 / 100.0).cos();
+        
+        // Add character frequency influence
+        if i < 256 {
+            let char_count = text.chars().filter(|&c| c as u8 == i as u8).count();
+            value += (char_count as f32 / 10.0).sin();
+        }
+        
+        // Add positional encoding
+        value += ((i as f32) / 384.0 * std::f32::consts::PI).sin() * 0.1;
+        
+        embedding.push(value);
+    }
+    
+    Ok(normalize_vector(embedding))
+}
+
+fn normalize_vector(mut vector: Vec<f32>) -> Vec<f32> {
+    let magnitude: f32 = vector.iter().map(|x| x * x).sum::<f32>().sqrt();
+    if magnitude > 0.0 {
+        for value in &mut vector {
+            *value /= magnitude;
+        }
+    }
+    vector
+}
+
+// Backward compatibility function
+fn generate_embedding(text: &str) -> Vec<f32> {
+    let config = RAGConfig::default();
+    // Use blocking call for backward compatibility
+    tokio::runtime::Runtime::new()
+        .unwrap()
+        .block_on(generate_embedding_with_config(text, &config))
+        .unwrap_or_else(|_| vec![0.0; 384])
 }
 
 fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
@@ -192,7 +433,296 @@ fn init_db(conn: &Connection) -> Result<()> {
     Ok(())
 }
 
-// ---------- Tauri Commands -----------------------------------------------------
+// ---------- Enhanced RAG Commands ----------------------------------------------
+
+#[tauri::command]
+async fn set_rag_config(
+    config: RAGConfig,
+    app: AppHandle,
+) -> Result<(), String> {
+    // Store RAG config in app state
+    app.manage(Arc::new(Mutex::new(config)));
+    Ok(())
+}
+
+#[tauri::command]
+async fn get_rag_config(
+    app: AppHandle,
+) -> Result<RAGConfig, String> {
+    match app.try_state::<Arc<Mutex<RAGConfig>>>() {
+        Some(config_state) => {
+            let config = config_state.lock().map_err(|e| e.to_string())?;
+            Ok(config.clone())
+        }
+        None => Ok(RAGConfig::default()),
+    }
+}
+
+#[tauri::command]
+async fn process_document_enhanced(
+    file_path: String,
+    title: Option<String>,
+    config: RAGConfig,
+    db_state: tauri::State<'_, Arc<Mutex<Connection>>>,
+    app: AppHandle,
+) -> Result<ProcessingResult, String> {
+    let start_time = std::time::Instant::now();
+    
+    let content = extract_text_from_file(&file_path)
+        .await
+        .map_err(|e| e.to_string())?;
+    
+    let file_name = std::path::Path::new(&file_path)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("Unknown")
+        .to_string();
+    
+    let doc_title = title.unwrap_or(file_name);
+    let content_hash = calculate_content_hash(&content);
+    let now = Utc::now();
+
+    // Extract file type before moving file_path
+    let file_type = std::path::Path::new(&file_path)
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("unknown")
+        .to_string();
+
+    let document = Document {
+        id: Uuid::new_v4().to_string(),
+        title: doc_title,
+        content: content.clone(),
+        file_path: Some(file_path),
+        file_type,
+        content_hash,
+        created_at: now,
+        updated_at: now,
+    };
+
+    // Save to database
+    {
+        let db = db_state.lock().map_err(|e| e.to_string())?;
+        db.execute(
+            "INSERT INTO documents (id, title, content, file_path, file_type, content_hash, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            params![
+                document.id,
+                document.title,
+                document.content,
+                document.file_path,
+                document.file_type,
+                document.content_hash,
+                document.created_at.to_rfc3339(),
+                document.updated_at.to_rfc3339(),
+            ],
+        ).map_err(|e| e.to_string())?;
+    }
+
+    // Process chunks with enhanced configuration
+    let doc_id = document.id.clone();
+    let db_clone = db_state.inner().clone();
+    let app_clone = app.clone();
+    let config_clone = config.clone();
+    
+    let chunks_created = tokio::spawn(async move {
+        process_document_chunks_enhanced(&doc_id, &content, &db_clone, &config_clone).await
+    }).await.map_err(|e| e.to_string())??;
+
+    let processing_time = start_time.elapsed().as_millis() as u64;
+    
+    let _ = app_clone.emit("document_processed", &doc_id);
+
+    Ok(ProcessingResult {
+        success: true,
+        message: format!("Successfully processed document: {}", document.title),
+        chunks_created,
+        processing_time_ms: processing_time,
+    })
+}
+
+async fn process_document_chunks_enhanced(
+    document_id: &str,
+    content: &str,
+    db_state: &Arc<Mutex<Connection>>,
+    config: &RAGConfig,
+) -> Result<usize> {
+    let chunks = chunk_text_with_config(content, config);
+    
+    for (index, chunk_content) in chunks.iter().enumerate() {
+        let embedding = generate_embedding_with_config(chunk_content, config).await?;
+        let embedding_bytes: Vec<u8> = embedding.iter()
+            .flat_map(|f| f.to_le_bytes().to_vec())
+            .collect();
+
+        let chunk = DocumentChunk {
+            id: Uuid::new_v4().to_string(),
+            document_id: document_id.to_string(),
+            chunk_index: index as i32,
+            content: chunk_content.clone(),
+            embedding,
+            created_at: Utc::now(),
+        };
+
+        let db = db_state.lock().map_err(|e| anyhow::anyhow!(e.to_string()))?;
+        db.execute(
+            "INSERT INTO document_chunks (id, document_id, chunk_index, content, embedding, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                chunk.id,
+                chunk.document_id,
+                chunk.chunk_index,
+                chunk.content,
+                embedding_bytes,
+                chunk.created_at.to_rfc3339(),
+            ],
+        )?;
+    }
+
+    Ok(chunks.len())
+}
+
+#[tauri::command]
+async fn query_rag_enhanced(
+    query: String,
+    mode: RAGMode,
+    config: RAGConfig,
+    db_state: tauri::State<'_, Arc<Mutex<Connection>>>,
+) -> Result<RAGResponse, String> {
+    let start_time = std::time::Instant::now();
+    
+    let retrieved_context = match mode {
+        RAGMode::FineTunedOnly => {
+            // Don't retrieve context for fine-tuned only mode
+            Vec::new()
+        }
+        RAGMode::FineTunedWithRAG | RAGMode::BaseWithRAG => {
+            // Retrieve context for RAG modes
+            retrieve_context_enhanced(&query, &config, db_state).await?
+        }
+    };
+    
+    let answer = generate_answer_with_mode(&query, &retrieved_context, &mode).await;
+    let processing_time = start_time.elapsed().as_millis() as u64;
+    
+    Ok(RAGResponse {
+        answer,
+        retrieved_context,
+        mode_used: mode,
+        processing_time_ms: processing_time,
+    })
+}
+
+async fn retrieve_context_enhanced(
+    query: &str,
+    config: &RAGConfig,
+    db_state: tauri::State<'_, Arc<Mutex<Connection>>>,
+) -> Result<Vec<RetrievalResult>, String> {
+    let query_embedding = generate_embedding_with_config(query, config)
+        .await
+        .map_err(|e| e.to_string())?;
+    
+    let mut results = Vec::new();
+
+    let db = db_state.lock().map_err(|e| e.to_string())?;
+    
+    let mut stmt = db
+        .prepare("SELECT dc.id, dc.content, dc.embedding, d.title, d.file_path
+                  FROM document_chunks dc
+                  JOIN documents d ON dc.document_id = d.id")
+        .map_err(|e| e.to_string())?;
+
+    let chunk_iter = stmt
+        .query_map([], |row| {
+            let chunk_id: String = row.get(0)?;
+            let content: String = row.get(1)?;
+            let embedding_bytes: Vec<u8> = row.get(2)?;
+            let doc_title: String = row.get(3)?;
+            let file_path: Option<String> = row.get(4)?;
+            
+            let embedding: Vec<f32> = embedding_bytes
+                .chunks_exact(4)
+                .map(|chunk| f32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]))
+                .collect();
+
+            Ok((chunk_id, content, embedding, doc_title, file_path))
+        })
+        .map_err(|e| e.to_string())?;
+
+    for chunk_result in chunk_iter {
+        if let Ok((chunk_id, content, chunk_embedding, doc_title, file_path)) = chunk_result {
+            let similarity = cosine_similarity(&query_embedding, &chunk_embedding);
+            
+            if similarity > config.similarity_threshold {
+                results.push(RetrievalResult {
+                    chunk_id,
+                    content,
+                    document_title: doc_title,
+                    similarity_score: similarity,
+                    source_info: file_path.unwrap_or_else(|| "Unknown source".to_string()),
+                });
+            }
+        }
+    }
+
+    // Sort by similarity and take top-k
+    results.sort_by(|a, b| b.similarity_score.partial_cmp(&a.similarity_score).unwrap());
+    results.truncate(config.top_k);
+
+    Ok(results)
+}
+
+async fn generate_answer_with_mode(
+    query: &str,
+    context: &[RetrievalResult],
+    mode: &RAGMode,
+) -> String {
+    match mode {
+        RAGMode::FineTunedOnly => {
+            format!("Fine-tuned model response to: {}\n\n[This would be the output from your fine-tuned model]", query)
+        }
+        RAGMode::FineTunedWithRAG => {
+            if context.is_empty() {
+                format!("Fine-tuned model response (no relevant context found): {}", query)
+            } else {
+                let context_text = context.iter()
+                    .map(|r| format!("From {}: {}", r.document_title, r.content))
+                    .collect::<Vec<_>>()
+                    .join("\n\n");
+                
+                format!("Fine-tuned model response based on context:\n\nQuery: {}\n\nRelevant context:\n{}\n\n[This would be the enhanced fine-tuned model response using the retrieved context]", query, context_text)
+            }
+        }
+        RAGMode::BaseWithRAG => {
+            if context.is_empty() {
+                format!("I don't have relevant information to answer: {}\n\nPlease upload relevant documents to help me provide a better response.", query)
+            } else {
+                let context_text = context.iter()
+                    .map(|r| r.content.clone())
+                    .collect::<Vec<_>>()
+                    .join("\n\n");
+                
+                format!("Based on the documents in your knowledge base:\n\nQuery: {}\n\nAnswer: Based on the retrieved information, here's what I found:\n\n{}\n\nSources: {}", 
+                    query, 
+                    context_text,
+                    context.iter().map(|r| r.document_title.clone()).collect::<Vec<_>>().join(", ")
+                )
+            }
+        }
+    }
+}
+
+#[tauri::command]
+async fn test_rag_query(
+    query: String,
+    config: RAGConfig,
+    db_state: tauri::State<'_, Arc<Mutex<Connection>>>,
+) -> Result<RAGResponse, String> {
+    // This is specifically for testing - always use BaseWithRAG mode
+    query_rag_enhanced(query, RAGMode::BaseWithRAG, config, db_state).await
+}
+
+// ---------- Original Tauri Commands --------------------------------------------
 
 #[tauri::command]
 async fn upload_document(
@@ -554,16 +1084,27 @@ fn main() {
             
             let db = Arc::new(Mutex::new(conn));
             app.manage(db);
+            
+            // Initialize default RAG configuration
+            let default_config = RAGConfig::default();
+            app.manage(Arc::new(Mutex::new(default_config)));
 
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            // Original commands
             upload_document,
             get_documents,
             search_documents,
             chat_with_documents,
             get_chat_history,
             delete_document,
+            // Enhanced RAG commands
+            set_rag_config,
+            get_rag_config,
+            process_document_enhanced,
+            query_rag_enhanced,
+            test_rag_query,
         ])
         .run(tauri::generate_context!())
         .expect("Error running RAG application");

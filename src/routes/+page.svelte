@@ -32,15 +32,74 @@
     sources: SearchResult[];
   }
 
+  // Enhanced RAG Types
+  interface EmbeddingModel {
+    huggingface?: { model_name: string };
+    openai?: { api_key: string; model: string };
+    local?: { model_path: string };
+  }
+
+  type RAGMode = 'fine_tuned_only' | 'fine_tuned_rag' | 'base_rag';
+
+  interface RAGConfig {
+    embedding_model: EmbeddingModel;
+    mode: RAGMode;
+    chunk_size: number;
+    chunk_overlap: number;
+    top_k: number;
+    similarity_threshold: number;
+  }
+
+  interface ProcessingResult {
+    success: boolean;
+    message: string;
+    chunks_created: number;
+    processing_time_ms: number;
+  }
+
+  interface RetrievalResult {
+    chunk_id: string;
+    content: string;
+    document_title: string;
+    similarity_score: number;
+    source_info: string;
+  }
+
+  interface RAGResponse {
+    answer: string;
+    retrieved_context: RetrievalResult[];
+    mode_used: RAGMode;
+    processing_time_ms: number;
+  }
+
   // State
   let documents: Document[] = [];
   let chatMessages: ChatMessage[] = [];
   let currentMessage = '';
   let isLoading = false;
-  let selectedTab: 'chat' | 'documents' | 'search' = 'chat';
+  let selectedTab: 'chat' | 'documents' | 'search' | 'rag-config' | 'rag-test' = 'chat';
   let searchQuery = '';
   let searchResults: SearchResult[] = [];
   let isDragOver = false;
+
+  // Enhanced RAG State
+  let ragConfig: RAGConfig = {
+    embedding_model: { 
+      huggingface: { model_name: 'sentence-transformers/all-MiniLM-L6-v2' },
+      openai: { api_key: '', model: 'text-embedding-ada-002' },
+      local: { model_path: '' }
+    },
+    mode: 'base_rag',
+    chunk_size: 200,
+    chunk_overlap: 50,
+    top_k: 5,
+    similarity_threshold: 0.3
+  };
+  let embeddingModelType: 'huggingface' | 'openai' | 'local' = 'huggingface';
+  let testQuery = '';
+  let testResult: RAGResponse | null = null;
+  let processingResults: ProcessingResult[] = [];
+  let showAdvancedSettings = false;
 
   // Load data
   async function loadDocuments() {
@@ -210,9 +269,149 @@
     }
   }
 
+  // Enhanced RAG Functions
+  async function saveRAGConfig() {
+    try {
+      isLoading = true;
+      
+      // Update embedding model based on selected type
+      ragConfig.embedding_model = {};
+      if (embeddingModelType === 'huggingface') {
+        ragConfig.embedding_model.huggingface = { 
+          model_name: ragConfig.embedding_model.huggingface?.model_name || 'sentence-transformers/all-MiniLM-L6-v2' 
+        };
+      } else if (embeddingModelType === 'openai') {
+        ragConfig.embedding_model.openai = { 
+          api_key: ragConfig.embedding_model.openai?.api_key || '',
+          model: ragConfig.embedding_model.openai?.model || 'text-embedding-ada-002'
+        };
+      } else if (embeddingModelType === 'local') {
+        ragConfig.embedding_model.local = { 
+          model_path: ragConfig.embedding_model.local?.model_path || ''
+        };
+      }
+      
+      await invoke('set_rag_config', { config: ragConfig });
+      
+      // Show success notification
+      processingResults = [{
+        success: true,
+        message: 'RAG configuration saved successfully',
+        chunks_created: 0,
+        processing_time_ms: 0
+      }, ...processingResults.slice(0, 4)];
+      
+    } catch (error) {
+      console.error('Error saving RAG config:', error);
+      processingResults = [{
+        success: false,
+        message: `Failed to save configuration: ${error}`,
+        chunks_created: 0,
+        processing_time_ms: 0
+      }, ...processingResults.slice(0, 4)];
+    } finally {
+      isLoading = false;
+    }
+  }
+  
+  async function loadRAGConfig() {
+    try {
+      const config = await invoke<RAGConfig>('get_rag_config');
+      ragConfig = config;
+      
+      // Set embedding model type based on config
+      if (config.embedding_model.huggingface) {
+        embeddingModelType = 'huggingface';
+      } else if (config.embedding_model.openai) {
+        embeddingModelType = 'openai';
+      } else if (config.embedding_model.local) {
+        embeddingModelType = 'local';
+      }
+    } catch (error) {
+      console.error('Error loading RAG config:', error);
+    }
+  }
+  
+  function resetRAGConfig() {
+    ragConfig = {
+      embedding_model: { huggingface: { model_name: 'sentence-transformers/all-MiniLM-L6-v2' } },
+      mode: 'base_rag',
+      chunk_size: 200,
+      chunk_overlap: 50,
+      top_k: 5,
+      similarity_threshold: 0.3
+    };
+    embeddingModelType = 'huggingface';
+  }
+  
+  async function runRAGTest() {
+    if (!testQuery.trim()) return;
+    
+    try {
+      isLoading = true;
+      testResult = null;
+      
+      const result = await invoke<RAGResponse>('test_rag_query', {
+        query: testQuery,
+        config: ragConfig
+      });
+      
+      testResult = result;
+    } catch (error) {
+      console.error('Error running RAG test:', error);
+      testResult = {
+        answer: `Error running test: ${error}`,
+        retrieved_context: [],
+        mode_used: ragConfig.mode,
+        processing_time_ms: 0
+      };
+    } finally {
+      isLoading = false;
+    }
+  }
+  
+  // Enhanced document upload with RAG config
+  async function uploadDocumentEnhanced(event: Event) {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0];
+    
+    if (file) {
+      try {
+        isLoading = true;
+        
+        const result = await invoke<ProcessingResult>('process_document_enhanced', {
+          filePath: file.name,
+          title: file.name,
+          config: ragConfig
+        });
+        
+        // Add to processing results
+        processingResults = [result, ...processingResults.slice(0, 4)];
+        
+        // Reload documents
+        await loadDocuments();
+        
+      } catch (error) {
+        console.error('Error uploading document:', error);
+        processingResults = [{
+          success: false,
+          message: `Failed to process document: ${error}`,
+          chunks_created: 0,
+          processing_time_ms: 0
+        }, ...processingResults.slice(0, 4)];
+      } finally {
+        isLoading = false;
+      }
+    }
+    
+    // Reset the input
+    target.value = '';
+  }
+
   onMount(() => {
     loadDocuments();
     loadChatHistory();
+    loadRAGConfig();
   });
 </script>
 
@@ -225,27 +424,39 @@
         <p class="app-subtitle">Retrieval-Augmented Generation Assistant</p>
       </div>
       
-      <!-- Navigation tabs -->
-      <nav class="tabs">
-        <button 
-          class="tab {selectedTab === 'chat' ? 'active' : ''}"
-          on:click={() => selectedTab = 'chat'}
-        >
-          💬 Chat
-        </button>
-        <button 
-          class="tab {selectedTab === 'documents' ? 'active' : ''}"
-          on:click={() => selectedTab = 'documents'}
-        >
-          📄 Documents ({documents.length})
-        </button>
-        <button 
-          class="tab {selectedTab === 'search' ? 'active' : ''}"
-          on:click={() => selectedTab = 'search'}
-        >
-          🔍 Search
-        </button>
-      </nav>
+             <!-- Navigation tabs -->
+       <nav class="tabs">
+         <button 
+           class="tab {selectedTab === 'chat' ? 'active' : ''}"
+           on:click={() => selectedTab = 'chat'}
+         >
+           💬 Chat
+         </button>
+         <button 
+           class="tab {selectedTab === 'documents' ? 'active' : ''}"
+           on:click={() => selectedTab = 'documents'}
+         >
+           📄 Documents ({documents.length})
+         </button>
+         <button 
+           class="tab {selectedTab === 'search' ? 'active' : ''}"
+           on:click={() => selectedTab = 'search'}
+         >
+           🔍 Search
+         </button>
+         <button 
+           class="tab {selectedTab === 'rag-config' ? 'active' : ''}"
+           on:click={() => selectedTab = 'rag-config'}
+         >
+           ⚙️ RAG Config
+         </button>
+         <button 
+           class="tab {selectedTab === 'rag-test' ? 'active' : ''}"
+           on:click={() => selectedTab = 'rag-test'}
+         >
+           🧪 Test RAG
+         </button>
+       </nav>
     </header>
 
     <!-- Main content area -->
@@ -431,9 +642,319 @@
               <h3>No results found</h3>
               <p>Try adjusting your search terms.</p>
             </div>
-          {/if}
-        </div>
+                     {/if}
+         </div>
+       
+       <!-- RAG Configuration Tab -->
+       {:else if selectedTab === 'rag-config'}
+         <div class="rag-config-container">
+           <div class="config-header">
+             <h2>⚙️ RAG Configuration</h2>
+             <p>Configure your Retrieval-Augmented Generation settings</p>
+           </div>
+           
+           <!-- Embedding Model Selection -->
+           <div class="config-section">
+             <h3>🤖 Embedding Model</h3>
+             <div class="model-selector">
+               <label class="radio-option">
+                 <input type="radio" bind:group={embeddingModelType} value="huggingface" />
+                 <span class="radio-label">
+                   <strong>🤗 HuggingFace</strong>
+                   <small>Use pre-trained models from HuggingFace Hub</small>
+                 </span>
+               </label>
+               
+               {#if embeddingModelType === 'huggingface'}
+                 <div class="model-config">
+                   <label>
+                     Model Name:
+                                           <input 
+                        type="text" 
+                        bind:value={ragConfig.embedding_model.huggingface.model_name}
+                        placeholder="sentence-transformers/all-MiniLM-L6-v2"
+                      />
+                   </label>
+                 </div>
+               {/if}
+               
+               <label class="radio-option">
+                 <input type="radio" bind:group={embeddingModelType} value="openai" />
+                 <span class="radio-label">
+                   <strong>🚀 OpenAI</strong>
+                   <small>Use OpenAI's embedding models (requires API key)</small>
+                 </span>
+               </label>
+               
+               {#if embeddingModelType === 'openai'}
+                 <div class="model-config">
+                   <label>
+                     API Key:
+                     <input 
+                       type="password" 
+                       bind:value={ragConfig.embedding_model.openai.api_key}
+                       placeholder="sk-..."
+                     />
+                   </label>
+                   <label>
+                     Model:
+                     <select bind:value={ragConfig.embedding_model.openai.model}>
+                       <option value="text-embedding-ada-002">text-embedding-ada-002</option>
+                       <option value="text-embedding-3-small">text-embedding-3-small</option>
+                       <option value="text-embedding-3-large">text-embedding-3-large</option>
+                     </select>
+                   </label>
+                 </div>
+               {/if}
+               
+               <label class="radio-option">
+                 <input type="radio" bind:group={embeddingModelType} value="local" />
+                 <span class="radio-label">
+                   <strong>💻 Local</strong>
+                   <small>Use local embedding model (requires model file)</small>
+                 </span>
+               </label>
+               
+               {#if embeddingModelType === 'local'}
+                 <div class="model-config">
+                   <label>
+                     Model Path:
+                     <input 
+                       type="text" 
+                       bind:value={ragConfig.embedding_model.local.model_path}
+                       placeholder="/path/to/model"
+                     />
+                   </label>
+                 </div>
+               {/if}
+             </div>
+           </div>
+           
+           <!-- RAG Mode Selection -->
+           <div class="config-section">
+             <h3>🎯 RAG Mode</h3>
+             <div class="mode-selector">
+               <label class="radio-option">
+                 <input type="radio" bind:group={ragConfig.mode} value="fine_tuned_only" />
+                 <span class="radio-label">
+                   <strong>🎯 Fine-tuned Only</strong>
+                   <small>Use only your fine-tuned model (no document retrieval)</small>
+                 </span>
+               </label>
+               
+               <label class="radio-option">
+                 <input type="radio" bind:group={ragConfig.mode} value="fine_tuned_rag" />
+                 <span class="radio-label">
+                   <strong>🔗 Fine-tuned + RAG</strong>
+                   <small>Combine fine-tuned model with document retrieval</small>
+                 </span>
+               </label>
+               
+               <label class="radio-option">
+                 <input type="radio" bind:group={ragConfig.mode} value="base_rag" />
+                 <span class="radio-label">
+                   <strong>📚 Base + RAG</strong>
+                   <small>Use base model enhanced with document retrieval</small>
+                 </span>
+               </label>
+             </div>
+           </div>
+           
+           <!-- Advanced Settings -->
+           <div class="config-section">
+             <div class="advanced-toggle">
+               <button 
+                 class="toggle-button" 
+                 on:click={() => showAdvancedSettings = !showAdvancedSettings}
+               >
+                 🔧 Advanced Settings {showAdvancedSettings ? '▼' : '▶'}
+               </button>
+             </div>
+             
+             {#if showAdvancedSettings}
+               <div class="advanced-settings">
+                 <div class="setting-row">
+                   <label>
+                     Chunk Size:
+                     <input 
+                       type="number" 
+                       bind:value={ragConfig.chunk_size}
+                       min="50"
+                       max="1000"
+                     />
+                     <small>Number of words per chunk</small>
+                   </label>
+                   
+                   <label>
+                     Chunk Overlap:
+                     <input 
+                       type="number" 
+                       bind:value={ragConfig.chunk_overlap}
+                       min="0"
+                       max="200"
+                     />
+                     <small>Overlapping words between chunks</small>
+                   </label>
+                 </div>
+                 
+                 <div class="setting-row">
+                   <label>
+                     Top-K Results:
+                     <input 
+                       type="number" 
+                       bind:value={ragConfig.top_k}
+                       min="1"
+                       max="20"
+                     />
+                     <small>Number of top results to retrieve</small>
+                   </label>
+                   
+                   <label>
+                     Similarity Threshold:
+                     <input 
+                       type="number" 
+                       bind:value={ragConfig.similarity_threshold}
+                       min="0"
+                       max="1"
+                       step="0.1"
+                     />
+                     <small>Minimum similarity score (0-1)</small>
+                   </label>
+                 </div>
+               </div>
              {/if}
+           </div>
+           
+           <!-- Save Configuration -->
+           <div class="config-actions">
+             <button class="primary-button" on:click={saveRAGConfig}>
+               💾 Save Configuration
+             </button>
+             <button class="secondary-button" on:click={resetRAGConfig}>
+               🔄 Reset to Defaults
+             </button>
+           </div>
+           
+           <!-- Processing Results -->
+           {#if processingResults.length > 0}
+             <div class="processing-results">
+               <h3>📊 Recent Processing Results</h3>
+               {#each processingResults as result}
+                 <div class="result-card {result.success ? 'success' : 'error'}">
+                   <div class="result-header">
+                     <span class="status-icon">{result.success ? '✅' : '❌'}</span>
+                     <span class="result-message">{result.message}</span>
+                   </div>
+                   {#if result.success}
+                     <div class="result-details">
+                       <span>📄 {result.chunks_created} chunks created</span>
+                       <span>⏱️ {result.processing_time_ms}ms</span>
+                     </div>
+                   {/if}
+                 </div>
+               {/each}
+             </div>
+           {/if}
+         </div>
+       
+       <!-- RAG Testing Tab -->
+       {:else if selectedTab === 'rag-test'}
+         <div class="rag-test-container">
+           <div class="test-header">
+             <h2>🧪 RAG Testing Interface</h2>
+             <p>Test your RAG configuration and see detailed results</p>
+           </div>
+           
+           <div class="test-input-section">
+             <label for="test-query">Test Query:</label>
+             <textarea
+               id="test-query"
+               bind:value={testQuery}
+               placeholder="Enter your test question here..."
+               rows="3"
+               class="test-input"
+             ></textarea>
+             
+             <div class="test-actions">
+               <button 
+                 class="primary-button" 
+                 on:click={runRAGTest}
+                 disabled={!testQuery.trim() || isLoading}
+               >
+                 {isLoading ? '🔄 Testing...' : '🚀 Run Test'}
+               </button>
+               
+               <div class="test-mode-info">
+                 <strong>Current Mode:</strong> 
+                 <span class="mode-badge mode-{ragConfig.mode}">
+                   {ragConfig.mode === 'fine_tuned_only' ? '🎯 Fine-tuned Only' : 
+                    ragConfig.mode === 'fine_tuned_rag' ? '🔗 Fine-tuned + RAG' : 
+                    '📚 Base + RAG'}
+                 </span>
+               </div>
+             </div>
+           </div>
+           
+           {#if testResult}
+             <div class="test-results">
+               <div class="result-section">
+                 <h3>💬 Generated Response</h3>
+                 <div class="response-box">
+                   {testResult.answer}
+                 </div>
+                 
+                 <div class="result-meta">
+                   <span>⏱️ Processing time: {testResult.processing_time_ms}ms</span>
+                   <span>🎯 Mode used: {testResult.mode_used}</span>
+                 </div>
+               </div>
+               
+               {#if testResult.retrieved_context.length > 0}
+                 <div class="result-section">
+                   <h3>📋 Retrieved Context ({testResult.retrieved_context.length} chunks)</h3>
+                   <div class="context-list">
+                     {#each testResult.retrieved_context as context, index}
+                       <div class="context-item">
+                         <div class="context-header">
+                           <span class="context-index">#{index + 1}</span>
+                           <span class="context-source">📄 {context.document_title}</span>
+                           <span class="similarity-score">
+                             🎯 {Math.round(context.similarity_score * 100)}% match
+                           </span>
+                         </div>
+                         <div class="context-content">
+                           {context.content}
+                         </div>
+                         <div class="context-source-info">
+                           📍 Source: {context.source_info}
+                         </div>
+                       </div>
+                     {/each}
+                   </div>
+                 </div>
+               {:else}
+                 <div class="result-section">
+                   <h3>📋 Retrieved Context</h3>
+                   <div class="no-context">
+                     ℹ️ No relevant context found or RAG mode doesn't use retrieval
+                   </div>
+                 </div>
+               {/if}
+             </div>
+           {/if}
+           
+           {#if documents.length === 0}
+             <div class="test-notice">
+               <div class="notice-icon">📚</div>
+               <h3>No documents available for testing</h3>
+               <p>Upload some documents first to test RAG functionality with retrieval.</p>
+               <button class="primary-button" on:click={() => selectedTab = 'documents'}>
+                 📎 Go to Documents
+               </button>
+             </div>
+           {/if}
+         </div>
+       {/if}
      </div>
    </div>
    
@@ -904,36 +1425,389 @@
     line-height: 1.5;
   }
 
-  /* Responsive Design */
-  @media (max-width: 768px) {
-    .app-container {
-      margin: 0;
-      border-radius: 0;
-    }
-    
-    .header {
-      padding: 1.5rem;
-    }
-    
-    .app-title {
-      font-size: 2rem;
-    }
-    
-    .tabs {
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-    
-    .main-content {
-      padding: 1rem;
-    }
-    
-    .documents-grid {
-      grid-template-columns: 1fr;
-    }
-    
-    .message-content {
-      max-width: 85%;
-    }
-  }
+     /* RAG Configuration Styles */
+   .rag-config-container, .rag-test-container {
+     height: calc(100vh - 200px);
+     overflow-y: auto;
+     padding: 1rem;
+   }
+
+   .config-header, .test-header {
+     text-align: center;
+     margin-bottom: 2rem;
+   }
+
+   .config-header h2, .test-header h2 {
+     margin: 0 0 0.5rem 0;
+     color: #333;
+   }
+
+   .config-header p, .test-header p {
+     color: #666;
+     margin: 0;
+   }
+
+   .config-section {
+     margin-bottom: 2rem;
+     padding: 1.5rem;
+     border: 1px solid #e0e0e0;
+     border-radius: 12px;
+     background: white;
+   }
+
+   .config-section h3 {
+     margin: 0 0 1rem 0;
+     color: #333;
+   }
+
+   .model-selector, .mode-selector {
+     display: flex;
+     flex-direction: column;
+     gap: 1rem;
+   }
+
+   .radio-option {
+     display: flex;
+     align-items: flex-start;
+     gap: 0.75rem;
+     cursor: pointer;
+     padding: 1rem;
+     border: 2px solid #e0e0e0;
+     border-radius: 8px;
+     transition: all 0.3s ease;
+   }
+
+   .radio-option:hover {
+     border-color: #667eea;
+     background: rgba(102, 126, 234, 0.05);
+   }
+
+   .radio-option input[type="radio"] {
+     margin: 0;
+   }
+
+   .radio-label {
+     flex: 1;
+   }
+
+   .radio-label strong {
+     display: block;
+     margin-bottom: 0.25rem;
+     color: #333;
+   }
+
+   .radio-label small {
+     color: #666;
+     font-size: 0.9rem;
+   }
+
+   .model-config {
+     margin-top: 1rem;
+     padding: 1rem;
+     background: #f8f9fa;
+     border-radius: 8px;
+   }
+
+   .model-config label {
+     display: block;
+     margin-bottom: 0.75rem;
+     font-weight: 500;
+   }
+
+   .model-config input, .model-config select {
+     width: 100%;
+     padding: 0.5rem;
+     border: 1px solid #ddd;
+     border-radius: 6px;
+     margin-top: 0.25rem;
+   }
+
+   .advanced-toggle {
+     margin-bottom: 1rem;
+   }
+
+   .toggle-button {
+     background: #667eea;
+     color: white;
+     border: none;
+     padding: 0.75rem 1rem;
+     border-radius: 8px;
+     cursor: pointer;
+     font-size: 1rem;
+   }
+
+   .advanced-settings {
+     margin-top: 1rem;
+     padding: 1rem;
+     background: #f8f9fa;
+     border-radius: 8px;
+   }
+
+   .setting-row {
+     display: grid;
+     grid-template-columns: 1fr 1fr;
+     gap: 1rem;
+     margin-bottom: 1rem;
+   }
+
+   .setting-row label {
+     display: flex;
+     flex-direction: column;
+     gap: 0.25rem;
+   }
+
+   .setting-row input {
+     padding: 0.5rem;
+     border: 1px solid #ddd;
+     border-radius: 6px;
+   }
+
+   .setting-row small {
+     color: #666;
+     font-size: 0.85rem;
+   }
+
+   .config-actions {
+     display: flex;
+     gap: 1rem;
+     justify-content: center;
+     margin: 2rem 0;
+   }
+
+   .secondary-button {
+     background: #6c757d;
+     color: white;
+     border: none;
+     padding: 0.75rem 1.5rem;
+     border-radius: 8px;
+     cursor: pointer;
+     font-size: 1rem;
+   }
+
+   .processing-results {
+     margin-top: 2rem;
+   }
+
+   .result-card {
+     margin-bottom: 1rem;
+     padding: 1rem;
+     border-radius: 8px;
+     border-left: 4px solid;
+   }
+
+   .result-card.success {
+     background: #d4edda;
+     border-left-color: #28a745;
+   }
+
+   .result-card.error {
+     background: #f8d7da;
+     border-left-color: #dc3545;
+   }
+
+   .result-header {
+     display: flex;
+     align-items: center;
+     gap: 0.5rem;
+     margin-bottom: 0.5rem;
+   }
+
+   .result-details {
+     display: flex;
+     gap: 1rem;
+     font-size: 0.9rem;
+     color: #666;
+   }
+
+   /* RAG Testing Styles */
+   .test-input-section {
+     margin-bottom: 2rem;
+     padding: 1.5rem;
+     border: 1px solid #e0e0e0;
+     border-radius: 12px;
+     background: white;
+   }
+
+   .test-input {
+     width: 100%;
+     padding: 1rem;
+     border: 2px solid #e0e0e0;
+     border-radius: 8px;
+     resize: vertical;
+     font-family: inherit;
+     margin-top: 0.5rem;
+   }
+
+   .test-actions {
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     margin-top: 1rem;
+   }
+
+   .test-mode-info {
+     font-size: 0.9rem;
+   }
+
+   .mode-badge {
+     padding: 0.25rem 0.75rem;
+     border-radius: 15px;
+     font-size: 0.8rem;
+     font-weight: 500;
+   }
+
+   .mode-fine_tuned_only {
+     background: #e3f2fd;
+     color: #1976d2;
+   }
+
+   .mode-fine_tuned_rag {
+     background: #f3e5f5;
+     color: #7b1fa2;
+   }
+
+   .mode-base_rag {
+     background: #e8f5e8;
+     color: #388e3c;
+   }
+
+   .test-results {
+     margin-top: 2rem;
+   }
+
+   .result-section {
+     margin-bottom: 2rem;
+     padding: 1.5rem;
+     border: 1px solid #e0e0e0;
+     border-radius: 12px;
+     background: white;
+   }
+
+   .result-section h3 {
+     margin: 0 0 1rem 0;
+     color: #333;
+   }
+
+   .response-box {
+     padding: 1rem;
+     background: #f8f9fa;
+     border-radius: 8px;
+     white-space: pre-wrap;
+     line-height: 1.6;
+     margin-bottom: 1rem;
+   }
+
+   .result-meta {
+     display: flex;
+     gap: 1rem;
+     font-size: 0.9rem;
+     color: #666;
+   }
+
+   .context-list {
+     display: flex;
+     flex-direction: column;
+     gap: 1rem;
+   }
+
+   .context-item {
+     padding: 1rem;
+     border: 1px solid #e0e0e0;
+     border-radius: 8px;
+     background: #f8f9fa;
+   }
+
+   .context-header {
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     margin-bottom: 0.75rem;
+     font-size: 0.9rem;
+   }
+
+   .context-index {
+     background: #667eea;
+     color: white;
+     padding: 0.25rem 0.5rem;
+     border-radius: 12px;
+     font-size: 0.8rem;
+     font-weight: 500;
+   }
+
+   .context-content {
+     margin-bottom: 0.75rem;
+     line-height: 1.5;
+   }
+
+   .context-source-info {
+     font-size: 0.85rem;
+     color: #666;
+   }
+
+   .no-context {
+     text-align: center;
+     padding: 2rem;
+     color: #666;
+     font-style: italic;
+   }
+
+   .test-notice {
+     text-align: center;
+     padding: 3rem;
+     color: #666;
+   }
+
+   .notice-icon {
+     font-size: 4rem;
+     margin-bottom: 1rem;
+   }
+
+   /* Responsive Design */
+   @media (max-width: 768px) {
+     .app-container {
+       margin: 0;
+       border-radius: 0;
+     }
+     
+     .header {
+       padding: 1.5rem;
+     }
+     
+     .app-title {
+       font-size: 2rem;
+     }
+     
+     .tabs {
+       flex-wrap: wrap;
+       gap: 0.5rem;
+     }
+     
+     .main-content {
+       padding: 1rem;
+     }
+     
+     .documents-grid {
+       grid-template-columns: 1fr;
+     }
+     
+     .message-content {
+       max-width: 85%;
+     }
+
+     .setting-row {
+       grid-template-columns: 1fr;
+     }
+
+     .test-actions {
+       flex-direction: column;
+       gap: 1rem;
+       align-items: stretch;
+     }
+
+     .context-header {
+       flex-direction: column;
+       align-items: flex-start;
+       gap: 0.5rem;
+     }
+   }
 </style>

@@ -8,7 +8,7 @@ use std::{
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use rusqlite::{params, Connection, Row};
+use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Emitter, Manager};
@@ -215,16 +215,19 @@ async fn upload_document(
     let content_hash = calculate_content_hash(&content);
     let now = Utc::now();
 
+    // Extract file type before moving file_path
+    let file_type = std::path::Path::new(&file_path)
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("unknown")
+        .to_string();
+
     let document = Document {
         id: Uuid::new_v4().to_string(),
         title: doc_title,
         content: content.clone(),
         file_path: Some(file_path),
-        file_type: std::path::Path::new(&file_path)
-            .extension()
-            .and_then(|s| s.to_str())
-            .unwrap_or("unknown")
-            .to_string(),
+        file_type,
         content_hash,
         created_at: now,
         updated_at: now,
@@ -547,7 +550,7 @@ fn main() {
             let db_path = data_dir.join("rag_documents.db");
             let conn = Connection::open(db_path)?;
             
-            init_db(&conn).map_err(|e| tauri::Error::Setup(e.into()))?;
+            init_db(&conn).expect("Failed to initialize database");
             
             let db = Arc::new(Mutex::new(conn));
             app.manage(db);

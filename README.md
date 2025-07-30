@@ -78,6 +78,7 @@ After launching this way once, the application will open normally in the future.
 - **UI Framework**: Svelte
 - **Build Tool**: Vite
 - **Package Manager**: pnpm
+- **Styling**: Tailwind CSS
 
 ## Getting Started
 

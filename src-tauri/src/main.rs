@@ -12,7 +12,9 @@ use chrono::{DateTime, Utc};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Manager};
+use tokio::{io::{AsyncBufReadExt, BufReader}, process::Command};
+use std::process::Stdio;
 use uuid::Uuid;
 use text_splitter::{TextSplitter, ChunkConfig};
 use csv::Reader;
@@ -1067,6 +1069,34 @@ fn delete_document(
     Ok(())
 }
 
+#[tauri::command]
+async fn run_fine_tune(config: String, app: AppHandle) -> Result<(), String> {
+    let script_path = app
+        .path_resolver()
+        .resolve_resource("../backend/fine_tune.py")
+        .ok_or("Script not found")?;
+
+    let mut child = Command::new("python3")
+        .arg(script_path)
+        .arg(config)
+        .stdout(Stdio::piped())
+        .spawn()
+        .map_err(|e| e.to_string())?;
+
+    if let Some(stdout) = child.stdout.take() {
+        let app_handle = app.clone();
+        tauri::async_runtime::spawn(async move {
+            let mut reader = BufReader::new(stdout).lines();
+            while let Ok(Some(line)) = reader.next_line().await {
+                let _ = app_handle.emit("fine_tune_log", line);
+            }
+        });
+    }
+
+    child.wait().await.map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 // ---------- Main Application ---------------------------------------------------
 
 fn main() {
@@ -1105,6 +1135,8 @@ fn main() {
             process_document_enhanced,
             query_rag_enhanced,
             test_rag_query,
+            // Fine-tune command from remote
+            run_fine_tune,
         ])
         .run(tauri::generate_context!())
         .expect("Error running RAG application");

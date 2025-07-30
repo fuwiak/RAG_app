@@ -1193,6 +1193,14 @@ fn main() {
             log_token_usage,
             clear_logs,
             export_logs,
+            // Model export and deployment commands
+            export_model_to_huggingface,
+            generate_fastapi_endpoint,
+            generate_docker_deployment,
+            // Additional RAG commands
+            chat_base_model,
+            chat_fine_tuned,
+            chat_hybrid_mode,
         ])
         .run(tauri::generate_context!())
         .expect("Error running RAG application");
@@ -1258,4 +1266,163 @@ async fn clear_logs() -> Result<(), String> {
 async fn export_logs() -> Result<(), String> {
     info!("Exporting logs");
     Ok(())
+}
+
+// ---------- Model Export and Deployment Commands ----------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExportConfig {
+    pub model_path: String,
+    pub output_dir: String,
+    pub model_name: String,
+    pub export_format: String,
+    pub include_tokenizer: bool,
+    pub push_to_hub: bool,
+    pub hub_token: Option<String>,
+    pub hub_repo_name: Option<String>,
+    pub model_description: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct APIConfig {
+    pub model_path: String,
+    pub api_name: String,
+    pub port: u16,
+    pub host: String,
+    pub enable_cors: bool,
+    pub max_workers: u8,
+    pub auth_token: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DockerConfig {
+    pub image_name: String,
+    pub tag: String,
+    pub base_image: String,
+    pub port: u16,
+    pub include_cuda: bool,
+    pub model_path: String,
+}
+
+#[tauri::command]
+async fn export_model_to_huggingface(config: ExportConfig) -> Result<String, String> {
+    info!("Exporting model to HuggingFace format: {:?}", config);
+    
+    // Mock implementation - in real app, this would call the Python export script
+    let output = format!(
+        "Model '{}' exported successfully to HuggingFace format at '{}'",
+        config.model_name, config.output_dir
+    );
+    
+    if config.push_to_hub {
+        return Ok(format!("{}\nModel pushed to HuggingFace Hub: {}", 
+            output, config.hub_repo_name.unwrap_or("unknown".to_string())));
+    }
+    
+    Ok(output)
+}
+
+#[tauri::command]
+async fn generate_fastapi_endpoint(config: APIConfig, output_dir: String) -> Result<String, String> {
+    info!("Generating FastAPI endpoint: {:?}", config);
+    
+    // Mock implementation - in real app, this would generate the API files
+    Ok(format!(
+        "FastAPI endpoint '{}' generated successfully at '{}'\nAPI will run on {}:{}",
+        config.api_name, output_dir, config.host, config.port
+    ))
+}
+
+#[tauri::command]
+async fn generate_docker_deployment(config: DockerConfig, output_dir: String) -> Result<String, String> {
+    info!("Generating Docker deployment: {:?}", config);
+    
+    // Mock implementation - in real app, this would generate Docker files
+    Ok(format!(
+        "Docker deployment '{}:{}' generated successfully at '{}'",
+        config.image_name, config.tag, output_dir
+    ))
+}
+
+// ---------- Additional Chat Commands ----------------------------------------------
+
+#[tauri::command]
+async fn chat_base_model(
+    query: String, 
+    temperature: f32, 
+    max_tokens: u32
+) -> Result<ChatResponse, String> {
+    info!("Chat with base model: {}", query);
+    
+    // Mock implementation for base model chat
+    let response = format!("Base model response to: {}", query);
+    
+    Ok(ChatResponse {
+        message: ChatMessage {
+            content: response,
+            role: "assistant".to_string(),
+        },
+        sources: vec![],
+    })
+}
+
+#[tauri::command]
+async fn chat_fine_tuned(
+    query: String, 
+    temperature: f32, 
+    max_tokens: u32
+) -> Result<ChatResponse, String> {
+    info!("Chat with fine-tuned model: {}", query);
+    
+    // Mock implementation for fine-tuned model chat
+    let response = format!("Fine-tuned model response to: {}", query);
+    
+    Ok(ChatResponse {
+        message: ChatMessage {
+            content: response,
+            role: "assistant".to_string(),
+        },
+        sources: vec![],
+    })
+}
+
+#[tauri::command]
+async fn chat_hybrid_mode(
+    query: String,
+    temperature: f32,
+    max_tokens: u32,
+    use_fine_tuned: bool,
+    use_rag: bool,
+) -> Result<ChatResponse, String> {
+    info!("Chat with hybrid mode: query={}, fine_tuned={}, rag={}", 
+          query, use_fine_tuned, use_rag);
+    
+    // Mock implementation for hybrid mode
+    let mut response = String::new();
+    
+    if use_fine_tuned && use_rag {
+        response = format!("Hybrid (Fine-tuned + RAG) response to: {}", query);
+    } else if use_fine_tuned {
+        response = format!("Fine-tuned model response to: {}", query);
+    } else if use_rag {
+        response = format!("RAG-enhanced response to: {}", query);
+    } else {
+        response = format!("Base model response to: {}", query);
+    }
+    
+    // Mock retrieved sources for RAG
+    let mut sources = vec![];
+    if use_rag {
+        sources.push(SearchResult {
+            relevant_chunks: vec![format!("Retrieved context for: {}", query)],
+        });
+    }
+    
+    Ok(ChatResponse {
+        message: ChatMessage {
+            content: response,
+            role: "assistant".to_string(),
+        },
+        sources,
+    })
 }

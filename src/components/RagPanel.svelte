@@ -34,9 +34,11 @@
 
   // Enhanced RAG Types
   interface EmbeddingModel {
-    huggingface?: { model_name: string };
+    huggingface?: { model_name: string; api_key?: string };
     openai?: { api_key: string; model: string };
+    groq?: { api_key: string; model: string };
     local?: { model_path: string };
+    custom?: { name: string; api_url: string; api_key?: string; model: string };
   }
 
   type RAGMode = 'fine_tuned_only' | 'fine_tuned_rag' | 'base_rag';
@@ -85,9 +87,11 @@
   // Enhanced RAG State
   let ragConfig: RAGConfig = {
     embedding_model: { 
-      huggingface: { model_name: 'sentence-transformers/all-MiniLM-L6-v2' },
+      huggingface: { model_name: 'sentence-transformers/all-MiniLM-L6-v2', api_key: '' },
       openai: { api_key: '', model: 'text-embedding-ada-002' },
-      local: { model_path: '' }
+      groq: { api_key: '', model: 'text-embedding-ada-002' },
+      local: { model_path: '' },
+      custom: { name: '', api_url: '', api_key: '', model: '' }
     },
     mode: 'base_rag',
     chunk_size: 200,
@@ -95,9 +99,98 @@
     top_k: 5,
     similarity_threshold: 0.3
   };
-  let embeddingModelType: 'huggingface' | 'openai' | 'local' = 'huggingface';
+  let embeddingModelType: 'huggingface' | 'openai' | 'groq' | 'local' | 'custom' = 'huggingface';
   let testQuery = '';
   let testResult: RAGResponse | null = null;
+  
+  // API Key visibility states
+  let showOpenAIKey = false;
+  let showGroqKey = false;
+  let showHFKey = false;
+  let showCustomKey = false;
+  
+  // Embedding model search and selection
+  let embeddingSearchQuery = '';
+  let availableEmbeddings: string[] = [
+    'sentence-transformers/all-MiniLM-L6-v2',
+    'sentence-transformers/all-mpnet-base-v2',
+    'sentence-transformers/distilbert-base-nli-stsb-mean-tokens',
+    'sentence-transformers/paraphrase-MiniLM-L6-v2',
+    'sentence-transformers/msmarco-distilbert-base-v4',
+    'intfloat/e5-small-v2',
+    'intfloat/e5-base-v2',
+    'intfloat/e5-large-v2',
+    'thenlper/gte-small',
+    'thenlper/gte-base',
+    'BAAI/bge-small-en-v1.5',
+    'BAAI/bge-base-en-v1.5',
+    'BAAI/bge-large-en-v1.5'
+  ];
+  let filteredEmbeddings: string[] = [...availableEmbeddings];
+  let showEmbeddingDropdown = false;
+  let isSearchingHF = false;
+
+  // Language Models Management
+  let selectedLanguage: 'en' | 'pl' | 'ru' | 'de' | 'fr' = 'en';
+  let modelSearchQuery = '';
+  let availableLanguageModels: Record<string, string[]> = {
+    en: [
+      'microsoft/DialoGPT-medium',
+      'microsoft/DialoGPT-large',
+      'facebook/blenderbot-400M-distill',
+      'microsoft/phi-2',
+      'google/flan-t5-base',
+      'google/flan-t5-large',
+      'EleutherAI/gpt-neo-2.7B',
+      'microsoft/CodeBERT-base',
+      'distilbert-base-uncased',
+      'bert-base-uncased'
+    ],
+    pl: [
+      'allegro/herbert-base-cased',
+      'allegro/herbert-large-cased',
+      'sdadas/polish-gpt2-medium',
+      'sdadas/polish-roberta-base-v2',
+      'allegro/plt5-base',
+      'allegro/plt5-large',
+      'clarin-pl/roberta-polish-kgr10',
+      'polish-nlp/polish-distilroberta',
+      'amu-cai/polish-bert-base-cased'
+    ],
+    ru: [
+      'sberbank-ai/rugpt3large_based_on_gpt2',
+      'sberbank-ai/rugpt3medium_based_on_gpt2',
+      'ai-forever/ruBert-base',
+      'ai-forever/ruRoberta-large',
+      'cointegrated/rubert-tiny2',
+      'DeepPavlov/rubert-base-cased',
+      'ai-forever/ru-gpts-large',
+      'sberbank-ai/sbert_large_nlu_ru'
+    ],
+    de: [
+      'dbmdz/bert-base-german-cased',
+      'dbmdz/bert-large-german-cased',
+      'dbmdz/distilbert-base-german-cased',
+      'german-nlp-group/electra-base-german-uncased',
+      'deepset/gbert-base',
+      'deepset/gbert-large',
+      'malteos/gpt2-wechsel-german',
+      'bert-base-german-dbmdz-cased'
+    ],
+    fr: [
+      'camembert-base',
+      'flaubert/flaubert_base_cased',
+      'dbmdz/bert-base-french-europeana-cased',
+      'lyon-nlp/mgpt-fr',
+      'asi/gpt-fr-cased-base',
+      'etalab-ia/camembert-base-wikipedia-4gb',
+      'gilf/french-camembert-base'
+    ]
+  };
+  let filteredLanguageModels: string[] = [...availableLanguageModels[selectedLanguage]];
+  let showModelDropdown = false;
+  let isSearchingModels = false;
+  let selectedModel = '';
   let processingResults: ProcessingResult[] = [];
   let showAdvancedSettings = false;
 
@@ -278,16 +371,29 @@
       ragConfig.embedding_model = {};
       if (embeddingModelType === 'huggingface') {
         ragConfig.embedding_model.huggingface = { 
-          model_name: ragConfig.embedding_model.huggingface?.model_name || 'sentence-transformers/all-MiniLM-L6-v2' 
+          model_name: ragConfig.embedding_model.huggingface?.model_name || 'sentence-transformers/all-MiniLM-L6-v2',
+          api_key: ragConfig.embedding_model.huggingface?.api_key || ''
         };
       } else if (embeddingModelType === 'openai') {
         ragConfig.embedding_model.openai = { 
           api_key: ragConfig.embedding_model.openai?.api_key || '',
           model: ragConfig.embedding_model.openai?.model || 'text-embedding-ada-002'
         };
+      } else if (embeddingModelType === 'groq') {
+        ragConfig.embedding_model.groq = { 
+          api_key: ragConfig.embedding_model.groq?.api_key || '',
+          model: ragConfig.embedding_model.groq?.model || 'text-embedding-ada-002'  
+        };
       } else if (embeddingModelType === 'local') {
         ragConfig.embedding_model.local = { 
           model_path: ragConfig.embedding_model.local?.model_path || ''
+        };
+      } else if (embeddingModelType === 'custom') {
+        ragConfig.embedding_model.custom = { 
+          name: ragConfig.embedding_model.custom?.name || '',
+          api_url: ragConfig.embedding_model.custom?.api_url || '',
+          api_key: ragConfig.embedding_model.custom?.api_key || '',
+          model: ragConfig.embedding_model.custom?.model || ''
         };
       }
       
@@ -322,10 +428,15 @@
       // Set embedding model type based on config
       if (config.embedding_model.huggingface) {
         embeddingModelType = 'huggingface';
+        embeddingSearchQuery = config.embedding_model.huggingface.model_name;
       } else if (config.embedding_model.openai) {
         embeddingModelType = 'openai';
+      } else if (config.embedding_model.groq) {
+        embeddingModelType = 'groq';
       } else if (config.embedding_model.local) {
         embeddingModelType = 'local';
+      } else if (config.embedding_model.custom) {
+        embeddingModelType = 'custom';
       }
     } catch (error) {
       console.error('Error loading RAG config:', error);
@@ -334,7 +445,13 @@
   
   function resetRAGConfig() {
     ragConfig = {
-      embedding_model: { huggingface: { model_name: 'sentence-transformers/all-MiniLM-L6-v2' } },
+      embedding_model: { 
+        huggingface: { model_name: 'sentence-transformers/all-MiniLM-L6-v2', api_key: '' },
+        openai: { api_key: '', model: 'text-embedding-ada-002' },
+        groq: { api_key: '', model: 'text-embedding-ada-002' },
+        local: { model_path: '' },
+        custom: { name: '', api_url: '', api_key: '', model: '' }
+      },
       mode: 'base_rag',
       chunk_size: 200,
       chunk_overlap: 50,
@@ -342,6 +459,7 @@
       similarity_threshold: 0.3
     };
     embeddingModelType = 'huggingface';
+    embeddingSearchQuery = 'sentence-transformers/all-MiniLM-L6-v2';
   }
   
   async function runRAGTest() {
@@ -408,10 +526,184 @@
     target.value = '';
   }
 
+  // Enhanced embedding model functions
+  function filterEmbeddings() {
+    if (!embeddingSearchQuery.trim()) {
+      filteredEmbeddings = [...availableEmbeddings];
+    } else {
+      filteredEmbeddings = availableEmbeddings.filter(model =>
+        model.toLowerCase().includes(embeddingSearchQuery.toLowerCase())
+      );
+    }
+  }
+
+  async function searchHuggingFaceModels() {
+    if (!embeddingSearchQuery.trim()) return;
+    
+    isSearchingHF = true;
+    try {
+      // Mock search for now - in real implementation, would call HF API
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const mockResults = [
+        `sentence-transformers/${embeddingSearchQuery}-v1`,
+        `sentence-transformers/${embeddingSearchQuery}-base`,
+        `intfloat/${embeddingSearchQuery}-small`,
+        `thenlper/${embeddingSearchQuery}-large`
+      ];
+      
+      // Add unique results to available embeddings
+      mockResults.forEach(model => {
+        if (!availableEmbeddings.includes(model)) {
+          availableEmbeddings.push(model);
+        }
+      });
+      
+      filterEmbeddings();
+    } catch (error) {
+      console.error('Failed to search HuggingFace models:', error);
+    } finally {
+      isSearchingHF = false;
+    }
+  }
+
+  function selectEmbedding(model: string) {
+    ragConfig.embedding_model.huggingface!.model_name = model;
+    embeddingSearchQuery = model;
+    showEmbeddingDropdown = false;
+  }
+
+  function toggleKeyVisibility(provider: 'openai' | 'groq' | 'huggingface' | 'custom') {
+    switch (provider) {
+      case 'openai':
+        showOpenAIKey = !showOpenAIKey;
+        break;
+      case 'groq':
+        showGroqKey = !showGroqKey;
+        break;
+      case 'huggingface':
+        showHFKey = !showHFKey;
+        break;
+      case 'custom':
+        showCustomKey = !showCustomKey;
+        break;
+    }
+  }
+
+  // Language and Model Management Functions
+  function switchLanguage(language: 'en' | 'pl' | 'ru' | 'de' | 'fr') {
+    selectedLanguage = language;
+    filteredLanguageModels = [...availableLanguageModels[language]];
+    modelSearchQuery = '';
+    selectedModel = filteredLanguageModels[0] || '';
+    showModelDropdown = false;
+  }
+
+  function filterLanguageModels() {
+    if (!modelSearchQuery.trim()) {
+      filteredLanguageModels = [...availableLanguageModels[selectedLanguage]];
+    } else {
+      filteredLanguageModels = availableLanguageModels[selectedLanguage].filter(model =>
+        model.toLowerCase().includes(modelSearchQuery.toLowerCase())
+      );
+    }
+  }
+
+  async function searchHuggingFaceLanguageModels() {
+    if (!modelSearchQuery.trim()) return;
+    
+    isSearchingModels = true;
+    try {
+      // Mock search for language-specific models
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      
+      const languagePrefix = {
+        en: 'english',
+        pl: 'polish',
+        ru: 'russian', 
+        de: 'german',
+        fr: 'french'
+      }[selectedLanguage];
+      
+      const mockResults = [
+        `${languagePrefix}-nlp/${modelSearchQuery}-base`,
+        `${languagePrefix}-models/${modelSearchQuery}-large`,
+        `huggingface/${languagePrefix}-${modelSearchQuery}`,
+        `community/${languagePrefix}-${modelSearchQuery}-v2`
+      ];
+      
+      // Add unique results to available models
+      mockResults.forEach(model => {
+        if (!availableLanguageModels[selectedLanguage].includes(model)) {
+          availableLanguageModels[selectedLanguage].push(model);
+        }
+      });
+      
+      filterLanguageModels();
+    } catch (error) {
+      console.error('Failed to search HuggingFace language models:', error);
+    } finally {
+      isSearchingModels = false;
+    }
+  }
+
+  function selectLanguageModel(model: string) {
+    selectedModel = model;
+    modelSearchQuery = model;
+    showModelDropdown = false;
+  }
+
+  function getLanguageFlag(language: string): string {
+    const flags = {
+      en: '🇺🇸',
+      pl: '🇵🇱', 
+      ru: '🇷🇺',
+      de: '🇩🇪',
+      fr: '🇫🇷'
+    };
+    return flags[language as keyof typeof flags] || '🌍';
+  }
+
+  function getLanguageName(language: string): string {
+    const names = {
+      en: 'English',
+      pl: 'Polish',
+      ru: 'Russian',
+      de: 'German',
+      fr: 'French'
+    };
+    return names[language as keyof typeof names] || 'Unknown';
+  }
+
   onMount(() => {
     loadDocuments();
     loadChatHistory();
     loadRAGConfig();
+    
+    // Initialize embedding search
+    embeddingSearchQuery = ragConfig.embedding_model.huggingface?.model_name || 'sentence-transformers/all-MiniLM-L6-v2';
+    filterEmbeddings();
+    
+    // Initialize model search
+    selectedModel = filteredLanguageModels[0] || '';
+    modelSearchQuery = selectedModel;
+    
+    // Close dropdowns when clicking outside
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.embedding-search-container')) {
+        showEmbeddingDropdown = false;
+      }
+      if (!target.closest('.model-search-wrapper')) {
+        showModelDropdown = false;
+      }
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
   });
 </script>
 
@@ -648,35 +940,109 @@
        <!-- RAG Configuration Tab -->
        {:else if selectedTab === 'rag-config'}
          <div class="rag-config-container">
-           <div class="config-header">
-             <h2>⚙️ RAG Configuration</h2>
-             <p>Configure your Retrieval-Augmented Generation settings</p>
-           </div>
+                     <div class="config-header">
+            <h2>⚙️ RAG Configuration</h2>
+            <p>Configure your Retrieval-Augmented Generation settings</p>
+            
+            <!-- Language Switcher -->
+            <div class="language-switcher">
+              <h4>🌍 Language Selection</h4>
+              <div class="language-buttons">
+                {#each ['en', 'pl', 'ru', 'de', 'fr'] as lang}
+                  <button 
+                    class="language-button {selectedLanguage === lang ? 'active' : ''}"
+                                         on:click={() => switchLanguage(lang as 'en' | 'pl' | 'ru' | 'de' | 'fr')}
+                    title="{getLanguageName(lang)} Models"
+                  >
+                    <span class="flag">{getLanguageFlag(lang)}</span>
+                    <span class="lang-code">{lang.toUpperCase()}</span>
+                  </button>
+                {/each}
+              </div>
+              <p class="language-info">
+                Selected: {getLanguageFlag(selectedLanguage)} {getLanguageName(selectedLanguage)} 
+                ({filteredLanguageModels.length} models available)
+              </p>
+            </div>
+          </div>
            
-           <!-- Embedding Model Selection -->
-           <div class="config-section">
-             <h3>🤖 Embedding Model</h3>
-             <div class="model-selector">
-               <label class="radio-option">
-                 <input type="radio" bind:group={embeddingModelType} value="huggingface" />
-                 <span class="radio-label">
-                   <strong>🤗 HuggingFace</strong>
-                   <small>Use pre-trained models from HuggingFace Hub</small>
-                 </span>
-               </label>
-               
-               {#if embeddingModelType === 'huggingface'}
-                 <div class="model-config">
-                   <label>
-                     Model Name:
-                                           <input 
+                     <!-- Embedding Model Selection -->
+          <div class="config-section">
+            <h3>🤖 Embedding Model</h3>
+            <div class="model-selector">
+              <label class="radio-option">
+                <input type="radio" bind:group={embeddingModelType} value="huggingface" />
+                <span class="radio-label">
+                  <strong>🤗 HuggingFace</strong>
+                  <small>Use pre-trained models from HuggingFace Hub</small>
+                </span>
+              </label>
+              
+              {#if embeddingModelType === 'huggingface'}
+                <div class="model-config">
+                  <label>
+                    Model Name:
+                    <div class="embedding-search-container">
+                      <input 
                         type="text" 
-                        bind:value={ragConfig.embedding_model.huggingface.model_name}
-                        placeholder="sentence-transformers/all-MiniLM-L6-v2"
+                        bind:value={embeddingSearchQuery}
+                        on:input={filterEmbeddings}
+                        on:focus={() => showEmbeddingDropdown = true}
+                        placeholder="Search or enter model name..."
+                        class="embedding-search-input"
                       />
-                   </label>
-                 </div>
-               {/if}
+                      <button 
+                        type="button"
+                        class="search-hf-button"
+                        on:click={searchHuggingFaceModels}
+                        disabled={isSearchingHF}
+                        title="Search HuggingFace Hub"
+                      >
+                        {#if isSearchingHF}
+                          🔄
+                        {:else}
+                          🔍
+                        {/if}
+                      </button>
+                      
+                      {#if showEmbeddingDropdown && filteredEmbeddings.length > 0}
+                        <div class="embedding-dropdown">
+                          {#each filteredEmbeddings.slice(0, 10) as model}
+                            <button 
+                              type="button"
+                              class="embedding-option"
+                              on:click={() => selectEmbedding(model)}
+                            >
+                              {model}
+                            </button>
+                          {/each}
+                        </div>
+                      {/if}
+                    </div>
+                  </label>
+                  
+                  <label>
+                    API Key (optional):
+                    <div class="api-key-container">
+                      <input 
+                        type={showHFKey ? 'text' : 'password'}
+                        bind:value={ragConfig.embedding_model.huggingface.api_key}
+                        placeholder="hf_..."
+                        class="api-key-input"
+                      />
+                      <button 
+                        type="button"
+                        class="toggle-key-button"
+                        on:click={() => toggleKeyVisibility('huggingface')}
+                        title={showHFKey ? 'Hide key' : 'Show key'}
+                      >
+                        {showHFKey ? '🙈' : '👁️'}
+                      </button>
+                    </div>
+                    <small>Optional for private models or higher rate limits</small>
+                  </label>
+                </div>
+              {/if}
                
                <label class="radio-option">
                  <input type="radio" bind:group={embeddingModelType} value="openai" />
@@ -686,51 +1052,228 @@
                  </span>
                </label>
                
-               {#if embeddingModelType === 'openai'}
-                 <div class="model-config">
-                   <label>
-                     API Key:
-                     <input 
-                       type="password" 
-                       bind:value={ragConfig.embedding_model.openai.api_key}
-                       placeholder="sk-..."
-                     />
-                   </label>
-                   <label>
-                     Model:
-                     <select bind:value={ragConfig.embedding_model.openai.model}>
-                       <option value="text-embedding-ada-002">text-embedding-ada-002</option>
-                       <option value="text-embedding-3-small">text-embedding-3-small</option>
-                       <option value="text-embedding-3-large">text-embedding-3-large</option>
-                     </select>
-                   </label>
-                 </div>
-               {/if}
+                             {#if embeddingModelType === 'openai'}
+                <div class="model-config">
+                  <label>
+                    API Key:
+                    <div class="api-key-container">
+                      <input 
+                        type={showOpenAIKey ? 'text' : 'password'}
+                        bind:value={ragConfig.embedding_model.openai.api_key}
+                        placeholder="sk-..."
+                        class="api-key-input"
+                      />
+                      <button 
+                        type="button"
+                        class="toggle-key-button"
+                        on:click={() => toggleKeyVisibility('openai')}
+                        title={showOpenAIKey ? 'Hide key' : 'Show key'}
+                      >
+                        {showOpenAIKey ? '🙈' : '👁️'}
+                      </button>
+                    </div>
+                  </label>
+                  <label>
+                    Model:
+                    <select bind:value={ragConfig.embedding_model.openai.model}>
+                      <option value="text-embedding-ada-002">text-embedding-ada-002</option>
+                      <option value="text-embedding-3-small">text-embedding-3-small</option>
+                      <option value="text-embedding-3-large">text-embedding-3-large</option>
+                    </select>
+                  </label>
+                </div>
+              {/if}
                
-               <label class="radio-option">
-                 <input type="radio" bind:group={embeddingModelType} value="local" />
-                 <span class="radio-label">
-                   <strong>💻 Local</strong>
-                   <small>Use local embedding model (requires model file)</small>
-                 </span>
-               </label>
-               
-               {#if embeddingModelType === 'local'}
-                 <div class="model-config">
-                   <label>
-                     Model Path:
-                     <input 
-                       type="text" 
-                       bind:value={ragConfig.embedding_model.local.model_path}
-                       placeholder="/path/to/model"
-                     />
-                   </label>
-                 </div>
-               {/if}
-             </div>
-           </div>
-           
-           <!-- RAG Mode Selection -->
+                             <label class="radio-option">
+                <input type="radio" bind:group={embeddingModelType} value="groq" />
+                <span class="radio-label">
+                  <strong>⚡ Groq</strong>
+                  <small>Ultra-fast AI inference with Groq's LPU™</small>
+                </span>
+              </label>
+              
+              {#if embeddingModelType === 'groq'}
+                <div class="model-config">
+                  <label>
+                    API Key:
+                    <div class="api-key-container">
+                      <input 
+                        type={showGroqKey ? 'text' : 'password'}
+                        bind:value={ragConfig.embedding_model.groq.api_key}
+                        placeholder="gsk_..."
+                        class="api-key-input"
+                      />
+                      <button 
+                        type="button"
+                        class="toggle-key-button"
+                        on:click={() => toggleKeyVisibility('groq')}
+                        title={showGroqKey ? 'Hide key' : 'Show key'}
+                      >
+                        {showGroqKey ? '🙈' : '👁️'}
+                      </button>
+                    </div>
+                  </label>
+                  <label>
+                    Model:
+                    <select bind:value={ragConfig.embedding_model.groq.model}>
+                      <option value="text-embedding-ada-002">text-embedding-ada-002</option>
+                      <option value="llama-3.1-8b-instant">llama-3.1-8b-instant</option>
+                      <option value="mixtral-8x7b-32768">mixtral-8x7b-32768</option>
+                    </select>
+                  </label>
+                </div>
+              {/if}
+              
+              <label class="radio-option">
+                <input type="radio" bind:group={embeddingModelType} value="local" />
+                <span class="radio-label">
+                  <strong>💻 Local</strong>
+                  <small>Use local embedding model (requires model file)</small>
+                </span>
+              </label>
+              
+              {#if embeddingModelType === 'local'}
+                <div class="model-config">
+                  <label>
+                    Model Path:
+                    <input 
+                      type="text" 
+                      bind:value={ragConfig.embedding_model.local.model_path}
+                      placeholder="/path/to/model"
+                    />
+                  </label>
+                </div>
+              {/if}
+              
+              <label class="radio-option">
+                <input type="radio" bind:group={embeddingModelType} value="custom" />
+                <span class="radio-label">
+                  <strong>🔧 Custom</strong>
+                  <small>Use your own custom embedding API</small>
+                </span>
+              </label>
+              
+              {#if embeddingModelType === 'custom'}
+                <div class="model-config">
+                  <label>
+                    Name:
+                    <input 
+                      type="text" 
+                      bind:value={ragConfig.embedding_model.custom.name}
+                      placeholder="My Custom Model"
+                    />
+                  </label>
+                  <label>
+                    API URL:
+                    <input 
+                      type="text" 
+                      bind:value={ragConfig.embedding_model.custom.api_url}
+                      placeholder="https://api.example.com/embeddings"
+                    />
+                  </label>
+                  <label>
+                    API Key (optional):
+                    <div class="api-key-container">
+                      <input 
+                        type={showCustomKey ? 'text' : 'password'}
+                        bind:value={ragConfig.embedding_model.custom.api_key}
+                        placeholder="your-api-key"
+                        class="api-key-input"
+                      />
+                      <button 
+                        type="button"
+                        class="toggle-key-button"
+                        on:click={() => toggleKeyVisibility('custom')}
+                        title={showCustomKey ? 'Hide key' : 'Show key'}
+                      >
+                        {showCustomKey ? '🙈' : '👁️'}
+                      </button>
+                    </div>
+                  </label>
+                  <label>
+                    Model:
+                    <input 
+                      type="text" 
+                      bind:value={ragConfig.embedding_model.custom.model}
+                      placeholder="model-name"
+                    />
+                  </label>
+                </div>
+              {/if}
+                        </div>
+          </div>
+          
+          <!-- HuggingFace Language Models Selection -->
+          <div class="config-section">
+            <h3>🤗 HuggingFace Language Models</h3>
+            <div class="model-search-container">
+              <label>
+                Search & Select Model:
+                <div class="model-search-wrapper">
+                  <input 
+                    type="text" 
+                    bind:value={modelSearchQuery}
+                    on:input={filterLanguageModels}
+                    on:focus={() => showModelDropdown = true}
+                    placeholder="Search {getLanguageName(selectedLanguage)} models..."
+                    class="model-search-input"
+                  />
+                  <button 
+                    type="button"
+                    class="search-models-button"
+                    on:click={searchHuggingFaceLanguageModels}
+                    disabled={isSearchingModels}
+                    title="Search HuggingFace for {getLanguageName(selectedLanguage)} models"
+                  >
+                    {#if isSearchingModels}
+                      🔄
+                    {:else}
+                      🔍
+                    {/if}
+                  </button>
+                  
+                  {#if showModelDropdown && filteredLanguageModels.length > 0}
+                    <div class="model-dropdown">
+                      <div class="dropdown-header">
+                        {getLanguageFlag(selectedLanguage)} {getLanguageName(selectedLanguage)} Models ({filteredLanguageModels.length})
+                      </div>
+                      {#each filteredLanguageModels.slice(0, 12) as model}
+                        <button 
+                          type="button"
+                          class="model-option {selectedModel === model ? 'selected' : ''}"
+                          on:click={() => selectLanguageModel(model)}
+                        >
+                          <span class="model-name">{model}</span>
+                          <span class="model-badge">HF</span>
+                        </button>
+                      {/each}
+                      {#if filteredLanguageModels.length > 12}
+                        <div class="more-models">
+                          +{filteredLanguageModels.length - 12} more models...
+                        </div>
+                      {/if}
+                    </div>
+                  {/if}
+                </div>
+              </label>
+              
+              {#if selectedModel}
+                <div class="selected-model-info">
+                  <div class="model-preview">
+                    <span class="model-icon">🤖</span>
+                    <div class="model-details">
+                      <div class="model-title">{selectedModel}</div>
+                      <div class="model-meta">
+                        {getLanguageFlag(selectedLanguage)} {getLanguageName(selectedLanguage)} • HuggingFace
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {/if}
+            </div>
+          </div>
+          
+          <!-- RAG Mode Selection -->
            <div class="config-section">
              <h3>🎯 RAG Mode</h3>
              <div class="mode-selector">
@@ -1804,10 +2347,506 @@
        align-items: stretch;
      }
 
-     .context-header {
-       flex-direction: column;
-       align-items: flex-start;
-       gap: 0.5rem;
-     }
-   }
+         .context-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+  }
+
+  /* Enhanced Embedding Model Styles */
+  .embedding-search-container {
+    position: relative;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .embedding-search-input {
+    flex: 1;
+    padding: 0.75rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+  }
+
+  .embedding-search-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+
+  .search-hf-button {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 50px;
+  }
+
+  .search-hf-button:hover:not(:disabled) {
+    background: #5a67d8;
+    transform: translateY(-2px);
+  }
+
+  .search-hf-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .embedding-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-top: 0.5rem;
+  }
+
+  .embedding-option {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: none;
+    background: white;
+    text-align: left;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-family: 'Monaco', 'Menlo', monospace;
+    transition: background 0.2s ease;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  .embedding-option:last-child {
+    border-bottom: none;
+  }
+
+  .embedding-option:hover {
+    background: #f8f9fa;
+  }
+
+  .embedding-option:focus {
+    outline: none;
+    background: #eff6ff;
+    color: #1d4ed8;
+  }
+
+  .api-key-container {
+    position: relative;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .api-key-input {
+    flex: 1;
+    padding: 0.75rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-family: 'Monaco', 'Menlo', monospace;
+    transition: all 0.3s ease;
+  }
+
+  .api-key-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+
+  .toggle-key-button {
+    background: #f3f4f6;
+    border: 2px solid #e5e7eb;
+    padding: 0.75rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 50px;
+  }
+
+  .toggle-key-button:hover {
+    background: #e5e7eb;
+    border-color: #d1d5db;
+  }
+
+  .toggle-key-button:active {
+    transform: scale(0.95);
+  }
+
+  /* Dark mode adjustments for new elements */
+  :global(.dark) .embedding-search-input,
+  :global(.dark) .api-key-input {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+
+  :global(.dark) .embedding-search-input:focus,
+  :global(.dark) .api-key-input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+  }
+
+  :global(.dark) .embedding-dropdown {
+    background: #374151;
+    border-color: #4b5563;
+  }
+
+  :global(.dark) .embedding-option {
+    background: #374151;
+    color: #f9fafb;
+    border-bottom-color: #4b5563;
+  }
+
+  :global(.dark) .embedding-option:hover {
+    background: #4b5563;
+  }
+
+  :global(.dark) .embedding-option:focus {
+    background: #1e40af;
+    color: #dbeafe;
+  }
+
+  :global(.dark) .toggle-key-button {
+    background: #4b5563;
+    border-color: #6b7280;
+    color: #f9fafb;
+  }
+
+  :global(.dark) .toggle-key-button:hover {
+    background: #6b7280;
+    border-color: #9ca3af;
+  }
+
+  /* Language Switcher Styles */
+  .language-switcher {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    border: 2px solid #e0f2fe;
+  }
+
+  .language-switcher h4 {
+    margin: 0 0 1rem 0;
+    color: #1e40af;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  .language-buttons {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  .language-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: white;
+    border: 2px solid #e0f2fe;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 70px;
+    gap: 0.25rem;
+  }
+
+  .language-button:hover {
+    border-color: #0ea5e9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2);
+  }
+
+  .language-button.active {
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+    border-color: #0284c7;
+    color: white;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+  }
+
+  .language-button .flag {
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+
+  .language-button .lang-code {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .language-info {
+    color: #1e40af;
+    font-size: 0.9rem;
+    margin: 0;
+    font-weight: 500;
+  }
+
+  /* Model Search Styles */
+  .model-search-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .model-search-wrapper {
+    position: relative;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .model-search-input {
+    flex: 1;
+    padding: 0.75rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    background: white;
+  }
+
+  .model-search-input:focus {
+    outline: none;
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+  }
+
+  .search-models-button {
+    background: #0ea5e9;
+    color: white;
+    border: none;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 50px;
+  }
+
+  .search-models-button:hover:not(:disabled) {
+    background: #0284c7;
+    transform: translateY(-2px);
+  }
+
+  .search-models-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .model-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 0.5rem;
+  }
+
+  .dropdown-header {
+    padding: 1rem;
+    background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+    border-bottom: 2px solid #e0f2fe;
+    font-weight: 600;
+    color: #1e40af;
+    font-size: 0.9rem;
+    border-radius: 10px 10px 0 0;
+  }
+
+  .model-option {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: none;
+    background: white;
+    text-align: left;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .model-option:last-child {
+    border-bottom: none;
+    border-radius: 0 0 10px 10px;
+  }
+
+  .model-option:hover {
+    background: #f0f9ff;
+    padding-left: 1.25rem;
+  }
+
+  .model-option.selected {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    color: #1e40af;
+    font-weight: 600;
+  }
+
+  .model-name {
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 0.85rem;
+  }
+
+  .model-badge {
+    background: #0ea5e9;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+
+  .more-models {
+    padding: 0.75rem 1rem;
+    color: #6b7280;
+    font-style: italic;
+    font-size: 0.85rem;
+    text-align: center;
+    border-top: 1px solid #f3f4f6;
+  }
+
+  .selected-model-info {
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    border: 2px solid #bbf7d0;
+    border-radius: 12px;
+    padding: 1rem;
+  }
+
+  .model-preview {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .model-icon {
+    font-size: 2rem;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  }
+
+  .model-details {
+    flex: 1;
+  }
+
+  .model-title {
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #166534;
+    margin-bottom: 0.25rem;
+  }
+
+  .model-meta {
+    color: #059669;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  /* Dark mode adjustments for language components */
+  :global(.dark) .language-switcher {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    border-color: #475569;
+  }
+
+  :global(.dark) .language-switcher h4 {
+    color: #60a5fa;
+  }
+
+  :global(.dark) .language-button {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+
+  :global(.dark) .language-button:hover {
+    border-color: #60a5fa;
+    box-shadow: 0 4px 12px rgba(96, 165, 250, 0.2);
+  }
+
+  :global(.dark) .language-button.active {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    border-color: #2563eb;
+  }
+
+  :global(.dark) .language-info {
+    color: #93c5fd;
+  }
+
+  :global(.dark) .model-search-input {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+
+  :global(.dark) .model-search-input:focus {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+  }
+
+  :global(.dark) .model-dropdown {
+    background: #374151;
+    border-color: #4b5563;
+  }
+
+  :global(.dark) .dropdown-header {
+    background: linear-gradient(135deg, #1e293b, #334155);
+    border-bottom-color: #475569;
+    color: #60a5fa;
+  }
+
+  :global(.dark) .model-option {
+    background: #374151;
+    color: #f9fafb;
+    border-bottom-color: #4b5563;
+  }
+
+  :global(.dark) .model-option:hover {
+    background: #4b5563;
+  }
+
+  :global(.dark) .model-option.selected {
+    background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+    color: #dbeafe;
+  }
+
+  :global(.dark) .selected-model-info {
+    background: linear-gradient(135deg, #1a2e05, #166534);
+    border-color: #15803d;
+  }
+
+  :global(.dark) .model-title {
+    color: #bbf7d0;
+  }
+
+  :global(.dark) .model-meta {
+    color: #86efac;
+  }
 </style>

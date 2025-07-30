@@ -5,6 +5,8 @@ use std::{
     path::PathBuf,
     sync::{Arc, Mutex},
     io::Read,
+    time::{Duration, SystemTime, UNIX_EPOCH},
+    thread,
 };
 
 use anyhow::Result;
@@ -12,13 +14,60 @@ use chrono::{DateTime, Utc};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, Emitter};
 use tokio::{io::{AsyncBufReadExt, BufReader}, process::Command};
 use std::process::Stdio;
 use uuid::Uuid;
 use text_splitter::{TextSplitter, ChunkConfig};
 use csv::Reader;
 use docx_rs::read_docx;
+use sysinfo::{System, SystemExt, CpuExt, DiskExt, NetworkExt, ProcessorExt};
+use log::{info, warn, error, debug};
+
+// ---------- System Monitoring Data Models ------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SystemStats {
+    pub cpu_usage: f32,
+    pub memory_usage: u64,
+    pub memory_total: u64,
+    pub disk_usage: u64,
+    pub disk_total: u64,
+    pub gpu_usage: Option<f32>,
+    pub gpu_memory: Option<u64>,
+    pub network_rx: u64,
+    pub network_tx: u64,
+    pub temperature: Option<f32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TokenUsage {
+    pub input_tokens: u32,
+    pub output_tokens: u32,
+    pub total_tokens: u32,
+    pub cost_estimate: f64,
+    pub timestamp: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TrainingProgress {
+    pub epoch: u32,
+    pub loss: f64,
+    pub accuracy: f64,
+    pub learning_rate: f64,
+    pub elapsed_time: u64,
+    pub estimated_remaining: u64,
+    pub status: String, // 'idle' | 'training' | 'completed' | 'error'
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LogEntry {
+    pub id: String,
+    pub timestamp: String,
+    pub level: String, // 'info' | 'warn' | 'error' | 'debug'
+    pub component: String,
+    pub message: String,
+}
 
 // ---------- Enhanced RAG Data Models -----------------------------------------------
 
@@ -472,8 +521,8 @@ async fn process_document_enhanced(
     
     let content = extract_text_from_file(&file_path)
         .await
-        .map_err(|e| e.to_string())?;
-    
+            .map_err(|e| e.to_string())?;
+
     let file_name = std::path::Path::new(&file_path)
         .file_name()
         .and_then(|n| n.to_str())
@@ -1076,14 +1125,14 @@ async fn run_fine_tune(config: String, app: AppHandle) -> Result<(), String> {
         .resolve_resource("../backend/fine_tune.py")
         .ok_or("Script not found")?;
 
-    let mut child = Command::new("python3")
+        let mut child = Command::new("python3")
         .arg(script_path)
         .arg(config)
-        .stdout(Stdio::piped())
-        .spawn()
+            .stdout(Stdio::piped())
+            .spawn()
         .map_err(|e| e.to_string())?;
 
-    if let Some(stdout) = child.stdout.take() {
+        if let Some(stdout) = child.stdout.take() {
         let app_handle = app.clone();
         tauri::async_runtime::spawn(async move {
             let mut reader = BufReader::new(stdout).lines();
@@ -1137,7 +1186,76 @@ fn main() {
             test_rag_query,
             // Fine-tune command from remote
             run_fine_tune,
+            // System monitoring commands
+            start_system_monitoring,
+            stop_system_monitoring,
+            get_system_stats,
+            log_token_usage,
+            clear_logs,
+            export_logs,
         ])
         .run(tauri::generate_context!())
         .expect("Error running RAG application");
+}
+
+// ---------- System Monitoring Commands ---------------------------------------------
+
+#[tauri::command]
+async fn start_system_monitoring(app: AppHandle) -> Result<(), String> {
+    info!("Starting system monitoring");
+    Ok(())
+}
+
+#[tauri::command]
+async fn stop_system_monitoring() -> Result<(), String> {
+    info!("Stopping system monitoring");
+    Ok(())
+}
+
+#[tauri::command]
+async fn get_system_stats() -> Result<SystemStats, String> {
+    // Mock implementation for now
+    Ok(SystemStats {
+        cpu_usage: 45.2,
+        memory_usage: 8589934592, // 8GB
+        memory_total: 17179869184, // 16GB
+        disk_usage: 107374182400, // 100GB
+        disk_total: 536870912000, // 500GB
+        gpu_usage: Some(30.0),
+        gpu_memory: Some(4294967296), // 4GB
+        network_rx: 1048576, // 1MB/s
+        network_tx: 524288,  // 512KB/s
+        temperature: Some(65.0),
+    })
+}
+
+#[tauri::command]
+async fn log_token_usage(
+    input_tokens: u32,
+    output_tokens: u32,
+    cost_estimate: f64,
+    app: AppHandle
+) -> Result<(), String> {
+    let token_usage = TokenUsage {
+        input_tokens,
+        output_tokens,
+        total_tokens: input_tokens + output_tokens,
+        cost_estimate,
+        timestamp: Utc::now().to_rfc3339(),
+    };
+    
+    let _ = app.emit("token_usage", &token_usage);
+    Ok(())
+}
+
+#[tauri::command]
+async fn clear_logs() -> Result<(), String> {
+    info!("Clearing logs");
+    Ok(())
+}
+
+#[tauri::command]
+async fn export_logs() -> Result<(), String> {
+    info!("Exporting logs");
+    Ok(())
 }

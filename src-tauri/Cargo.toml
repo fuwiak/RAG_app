@@ -47,6 +47,12 @@ candle-core = { version = "0.4", optional = true }
 candle-nn = { version = "0.4", optional = true }
 faiss = { version = "0.12", optional = true }
 
+# System monitoring
+sysinfo = "0.30"
+psutil = "3.2"
+log = "0.4"
+env_logger = "0.10"
+
 [features]
 default = ["local-embeddings"]
 local-embeddings = ["candle-core", "candle-nn"]

@@ -1,6 +1,49 @@
-# README Update
+# RAG App
 
-## Building the Application
+A Retrieval-Augmented Generation (RAG) application built with Tauri, SvelteKit, and TypeScript.
+
+## Description
+
+RAG App is a desktop application that combines document retrieval with AI-powered generation capabilities. It allows users to upload documents, create knowledge bases, and perform intelligent question-answering using retrieval-augmented generation techniques.
+
+## Features
+
+- **Document Upload & Processing**: Support for various document formats (PDF, TXT, DOCX)
+- **Vector Database**: Efficient document embedding and similarity search
+- **AI Integration**: Connect with popular LLM providers for intelligent responses
+- **Interactive Chat Interface**: User-friendly chat interface for querying documents
+- **Knowledge Base Management**: Organize and manage multiple document collections
+- **Cross-Platform**: Works on Windows, macOS, and Linux thanks to Tauri
+
+## Recommended Development Tools
+
+[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+
+## Requirements
+
+- [Node.js](https://nodejs.org/) (version 18 or higher)
+- [Rust](https://www.rust-lang.org/tools/install)
+- [pnpm](https://pnpm.io/installation) (recommended) or npm/yarn
+
+## Installation
+
+### Installing Dependencies
+
+```bash
+pnpm install
+```
+
+### Development Mode
+
+To run the application in development mode:
+
+```bash
+pnpm tauri dev
+```
+
+### Building the Application
+
+To build the application for production:
 
 ```bash
 # Build for all formats by default
@@ -16,63 +59,37 @@ After building, the executables will be available in the `src-tauri/target/relea
 
 If macOS blocks opening the DMG or launching the application, follow these steps:
 
-1. Right click (or Control-click) the DMG file in Finder
+1. Right-click (or Control-click) the DMG file in Finder
 2. Select "Open" from the context menu
 3. In the dialog that appears, click "Open"
 
-An alternative way to run the application:
+Alternative method to run the application:
 
-1. After installation, right click (or Control-click) the application in the Applications folder
+1. After installation, right-click (or Control-click) the application in the Applications folder
 2. Select "Open" from the context menu
 3. Confirm that you want to open the application by clicking "Open" in the dialog
 
 After launching this way once, the application will open normally in the future.
 
-```language=markdown:clipboard-history-tauri/README.md
-# Clipboard History
+## Technology Stack
 
-An application for storing and managing clipboard history built with Tauri, SvelteKit, and TypeScript.
+- **Frontend**: SvelteKit + TypeScript
+- **Backend**: Rust (Tauri)
+- **UI Framework**: Svelte
+- **Build Tool**: Vite
+- **Package Manager**: pnpm
 
-## Description
+## Getting Started
 
-Clipboard History lets you save previously copied items and quickly restore them to the clipboard. The application works on all major operating systems thanks to Tauri.
+1. Clone the repository
+2. Install dependencies with `pnpm install`
+3. Run in development mode with `pnpm tauri dev`
+4. Upload your documents and start asking questions!
 
-## Recommended development tools
+## Contributing
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer).
+We welcome contributions! Please feel free to submit a Pull Request.
 
-## Requirements
+## License
 
-- [Node.js](https://nodejs.org/) (version 16 or higher)
-- [Rust](https://www.rust-lang.org/tools/install)
-- [pnpm](https://pnpm.io/installation) (recommended) or npm/yarn
-
-## Installing dependencies
-
-```
-
-```bash
-pnpm install
-```
-
-## Running in development mode
-
-```bash
-pnpm tauri dev
-```
-
-## Building the application
-
-```bash
-pnpm tauri build
-```
-
-After building, the executables will be available in the `src-tauri/target/release` directory.
-
-## Features
-
-- Save clipboard history
-- Copy items from the history back to the clipboard
-- Automatically refresh when the clipboard changes
-- Support for all major operating systems (Windows, macOS, Linux)
-```
+This project is open source and available under the [MIT License](LICENSE).

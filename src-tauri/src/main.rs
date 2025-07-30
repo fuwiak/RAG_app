@@ -4,6 +4,8 @@ use std::{
     sync::{Arc, Mutex},
     thread,
     time::Duration,
+    process::{Command, Stdio},
+    io::{BufRead, BufReader},
 };
 
 use arboard::Clipboard;
@@ -101,6 +103,30 @@ fn get_terminal_history() -> Result<Vec<String>, String> {
         }
     }
     Err("History file not found".into())
+}
+
+#[tauri::command]
+fn start_fine_tune(app: AppHandle, config: String) -> Result<(), String> {
+    thread::spawn(move || {
+        let mut child = Command::new("python3")
+            .arg("backend/fine_tune.py")
+            .arg(&config)
+            .stdout(Stdio::piped())
+            .spawn()
+            .expect("failed to start python");
+
+        if let Some(stdout) = child.stdout.take() {
+            let reader = BufReader::new(stdout);
+            for line in reader.lines() {
+                if let Ok(line) = line {
+                    let _ = app.emit_all("training_progress", line.clone());
+                }
+            }
+        }
+
+        let _ = child.wait();
+    });
+    Ok(())
 }
 
 // ---------- main ------------------------------------------------------------
@@ -214,7 +240,8 @@ fn main() {
             get_saved,
             add_saved,
             remove_saved,
-            get_terminal_history
+            get_terminal_history,
+            start_fine_tune
         ])
         .run(tauri::generate_context!())
         .expect("Ошибка при запуске приложения");

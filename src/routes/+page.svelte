@@ -10,6 +10,7 @@
   let savedItems: string[] = [];
   let savedInput = '';
   let terminalItems: string[] = [];
+  let trainingLogs: string[] = [];
 
   const texts = {
     en: {
@@ -103,6 +104,14 @@
     }
   }
 
+  async function startFineTune() {
+    try {
+      await invoke('start_fine_tune', { config: 'default' });
+    } catch (error) {
+      console.error('Failed to start training:', error);
+    }
+  }
+
   // Обработчик изменения поискового запроса
   function handleSearchInput() {
     filterItems();
@@ -122,6 +131,10 @@
       loadHistory();
     }).then(unsubscribe => {
       cleanup = unsubscribe;
+    });
+
+    listen('training_progress', (event) => {
+      trainingLogs = [...trainingLogs, String(event.payload)];
     });
     
     // Возвращаем функцию очистки
@@ -211,6 +224,17 @@
             {/each}
           </ul>
         {/if}
+      </div>
+    </div>
+    <div class="training-section">
+      <h1>Training Logs</h1>
+      <button on:click={startFineTune}>Start Training</button>
+      <div class="training-container">
+        <ul>
+          {#each trainingLogs as log}
+            <li>{log}</li>
+          {/each}
+        </ul>
       </div>
     </div>
   </div>
@@ -307,6 +331,20 @@
   .terminal-container {
     margin-top: 1rem;
     max-height: 80vh;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0.5rem;
+  }
+
+  .training-section {
+    flex: 1 1 100%;
+    margin-top: 1rem;
+  }
+
+  .training-container {
+    margin-top: 0.5rem;
+    max-height: 40vh;
     overflow-y: auto;
     border: 1px solid #ddd;
     border-radius: 4px;

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
+  import { t } from '../lib/i18n';
   // Types
   interface Document {
     id: string;
@@ -712,8 +713,8 @@
     <!-- Header -->
     <header class="header">
       <div class="header-content">
-        <h1 class="app-title">RAG App</h1>
-        <p class="app-subtitle">Retrieval-Augmented Generation Assistant</p>
+        <h1 class="app-title nav-text-transition">{$t.rag_title}</h1>
+        <p class="app-subtitle nav-description-transition">{$t.rag_subtitle}</p>
       </div>
       
              <!-- Navigation tabs -->
@@ -722,31 +723,31 @@
            class="tab {selectedTab === 'chat' ? 'active' : ''}"
            on:click={() => selectedTab = 'chat'}
          >
-           💬 Chat
+           💬 <span class="nav-text-transition">{$t.tab_chat}</span>
          </button>
          <button 
            class="tab {selectedTab === 'documents' ? 'active' : ''}"
            on:click={() => selectedTab = 'documents'}
          >
-           📄 Documents ({documents.length})
+           📄 <span class="nav-text-transition">{$t.tab_documents} ({documents.length})</span>
          </button>
          <button 
            class="tab {selectedTab === 'search' ? 'active' : ''}"
            on:click={() => selectedTab = 'search'}
          >
-           🔍 Search
+           🔍 <span class="nav-text-transition">{$t.tab_search}</span>
          </button>
          <button 
            class="tab {selectedTab === 'rag-config' ? 'active' : ''}"
            on:click={() => selectedTab = 'rag-config'}
          >
-           ⚙️ RAG Config
+           ⚙️ <span class="nav-text-transition">{$t.tab_rag_config}</span>
          </button>
          <button 
            class="tab {selectedTab === 'rag-test' ? 'active' : ''}"
            on:click={() => selectedTab = 'rag-test'}
          >
-           🧪 Test RAG
+           🧪 <span class="nav-text-transition">{$t.tab_rag_test}</span>
          </button>
        </nav>
     </header>
@@ -760,18 +761,42 @@
           {#if documents.length === 0}
                          <div class="empty-state">
                <div class="empty-icon">📚</div>
-               <h3>No documents uploaded yet</h3>
-               <p>Upload some documents to start chatting with your knowledge base.</p>
+               <h3 class="nav-text-transition">{$t.documents_no_docs}</h3>
+               <p class="nav-description-transition">{$t.documents_start_chatting}</p>
                <button class="primary-button" on:click={triggerFileUpload}>
-                 📎 Upload Document
+                 📎 <span class="nav-text-transition">{$t.documents_upload}</span>
                </button>
              </div>
           {:else}
             <div class="chat-messages">
               {#if chatMessages.length === 0}
                 <div class="chat-welcome">
-                  <h3>Welcome to your RAG Assistant! 👋</h3>
-                  <p>Ask questions about your uploaded documents and I'll help you find answers.</p>
+                  <div class="welcome-animation">
+                    <div class="floating-particles">
+                      <div class="particle"></div>
+                      <div class="particle"></div>
+                      <div class="particle"></div>
+                      <div class="particle"></div>
+                      <div class="particle"></div>
+                    </div>
+                    <div class="welcome-avatar">🤖</div>
+                  </div>
+                  <h3 class="nav-text-transition welcome-title">{$t.chat_welcome_title}</h3>
+                  <p class="nav-description-transition welcome-desc">{$t.chat_welcome_desc}</p>
+                  <div class="welcome-suggestions">
+                    <div class="suggestion-card" on:click={() => currentMessage = 'What are the main topics in my documents?'}>
+                      <span class="suggestion-icon">📊</span>
+                      <span>Summarize topics</span>
+                    </div>
+                    <div class="suggestion-card" on:click={() => currentMessage = 'Find key insights from the latest reports'}>
+                      <span class="suggestion-icon">💡</span>
+                      <span>Key insights</span>
+                    </div>
+                    <div class="suggestion-card" on:click={() => currentMessage = 'What are the important dates and deadlines?'}>
+                      <span class="suggestion-icon">📅</span>
+                      <span>Important dates</span>
+                    </div>
+                  </div>
                 </div>
               {/if}
               
@@ -801,7 +826,7 @@
               <div class="chat-input-wrapper">
                 <textarea
                   bind:value={currentMessage}
-                  placeholder="Ask a question about your documents..."
+                  placeholder={$t.chat_placeholder}
                   on:keydown={handleKeyDown}
                   disabled={isLoading}
                   rows="1"
@@ -823,9 +848,9 @@
       {:else if selectedTab === 'documents'}
         <div class="documents-container">
                      <div class="documents-header">
-             <h2>Document Library</h2>
+             <h2 class="nav-text-transition">{$t.documents_library}</h2>
              <button class="primary-button" on:click={triggerFileUpload}>
-               📎 Upload Document
+               📎 <span class="nav-text-transition">{$t.documents_upload}</span>
              </button>
            </div>
           
@@ -842,9 +867,26 @@
              on:keydown={(e) => e.key === 'Enter' && triggerFileUpload()}
            >
             <div class="upload-content">
-              <div class="upload-icon">📁</div>
-              <p>Drag and drop documents here or click to upload</p>
-              <p class="upload-formats">Supported: PDF, TXT, MD</p>
+              <div class="upload-animation">
+                <div class="upload-icon-animated">📁</div>
+                <div class="upload-ripple"></div>
+              </div>
+              <h3 class="upload-title nav-text-transition">{$t.documents_drop_zone}</h3>
+              <p class="upload-formats nav-description-transition">{$t.documents_supported}</p>
+              <div class="upload-features">
+                <div class="upload-feature">
+                  <span class="feature-icon">⚡</span>
+                  <span>Instant processing</span>
+                </div>
+                <div class="upload-feature">
+                  <span class="feature-icon">🔒</span>
+                  <span>Secure & private</span>
+                </div>
+                <div class="upload-feature">
+                  <span class="feature-icon">📊</span>
+                  <span>AI-powered analysis</span>
+                </div>
+              </div>
             </div>
           </div>
           
@@ -852,8 +894,8 @@
           {#if documents.length === 0}
             <div class="empty-state">
               <div class="empty-icon">📄</div>
-              <h3>No documents yet</h3>
-              <p>Upload your first document to get started.</p>
+              <h3 class="nav-text-transition">{$t.documents_no_docs}</h3>
+              <p class="nav-description-transition">{$t.documents_upload_first}</p>
             </div>
           {:else}
             <div class="documents-grid">
@@ -893,14 +935,14 @@
       {:else if selectedTab === 'search'}
         <div class="search-container">
           <div class="search-header">
-            <h2>Search Documents</h2>
+            <h2 class="nav-text-transition">{$t.search_documents}</h2>
           </div>
           
           <div class="search-input-container">
             <input
               type="text"
               bind:value={searchQuery}
-              placeholder="Search your documents..."
+              placeholder={$t.search_placeholder}
               class="search-input"
               on:input={searchDocuments}
             />
@@ -941,8 +983,8 @@
        {:else if selectedTab === 'rag-config'}
          <div class="rag-config-container">
                      <div class="config-header">
-            <h2>⚙️ RAG Configuration</h2>
-            <p>Configure your Retrieval-Augmented Generation settings</p>
+            <h2 class="nav-text-transition">⚙️ {$t.config_title}</h2>
+            <p class="nav-description-transition">{$t.config_subtitle}</p>
             
             <!-- Language Switcher -->
             <div class="language-switcher">
@@ -951,7 +993,7 @@
                 {#each ['en', 'pl', 'ru', 'de', 'fr'] as lang}
                   <button 
                     class="language-button {selectedLanguage === lang ? 'active' : ''}"
-                                         on:click={() => switchLanguage(lang as 'en' | 'pl' | 'ru' | 'de' | 'fr')}
+                                         on:click={() => switchLanguage(lang)}
                     title="{getLanguageName(lang)} Models"
                   >
                     <span class="flag">{getLanguageFlag(lang)}</span>
@@ -1024,12 +1066,21 @@
                   <label>
                     API Key (optional):
                     <div class="api-key-container">
-                      <input 
-                        type={showHFKey ? 'text' : 'password'}
-                        bind:value={ragConfig.embedding_model.huggingface.api_key}
-                        placeholder="hf_..."
-                        class="api-key-input"
-                      />
+                      {#if showHFKey}
+                        <input 
+                          type="text"
+                          bind:value={ragConfig.embedding_model.huggingface.api_key}
+                          placeholder="hf_..."
+                          class="api-key-input"
+                        />
+                      {:else}
+                        <input 
+                          type="password"
+                          bind:value={ragConfig.embedding_model.huggingface.api_key}
+                          placeholder="hf_..."
+                          class="api-key-input"
+                        />
+                      {/if}
                       <button 
                         type="button"
                         class="toggle-key-button"
@@ -1057,12 +1108,21 @@
                   <label>
                     API Key:
                     <div class="api-key-container">
-                      <input 
-                        type={showOpenAIKey ? 'text' : 'password'}
-                        bind:value={ragConfig.embedding_model.openai.api_key}
-                        placeholder="sk-..."
-                        class="api-key-input"
-                      />
+                      {#if showOpenAIKey}
+                        <input 
+                          type="text"
+                          bind:value={ragConfig.embedding_model.openai.api_key}
+                          placeholder="sk-..."
+                          class="api-key-input"
+                        />
+                      {:else}
+                        <input 
+                          type="password"
+                          bind:value={ragConfig.embedding_model.openai.api_key}
+                          placeholder="sk-..."
+                          class="api-key-input"
+                        />
+                      {/if}
                       <button 
                         type="button"
                         class="toggle-key-button"
@@ -1097,12 +1157,21 @@
                   <label>
                     API Key:
                     <div class="api-key-container">
-                      <input 
-                        type={showGroqKey ? 'text' : 'password'}
-                        bind:value={ragConfig.embedding_model.groq.api_key}
-                        placeholder="gsk_..."
-                        class="api-key-input"
-                      />
+                      {#if showGroqKey}
+                        <input 
+                          type="text"
+                          bind:value={ragConfig.embedding_model.groq.api_key}
+                          placeholder="gsk_..."
+                          class="api-key-input"
+                        />
+                      {:else}
+                        <input 
+                          type="password"
+                          bind:value={ragConfig.embedding_model.groq.api_key}
+                          placeholder="gsk_..."
+                          class="api-key-input"
+                        />
+                      {/if}
                       <button 
                         type="button"
                         class="toggle-key-button"
@@ -1174,12 +1243,21 @@
                   <label>
                     API Key (optional):
                     <div class="api-key-container">
-                      <input 
-                        type={showCustomKey ? 'text' : 'password'}
-                        bind:value={ragConfig.embedding_model.custom.api_key}
-                        placeholder="your-api-key"
-                        class="api-key-input"
-                      />
+                      {#if showCustomKey}
+                        <input 
+                          type="text"
+                          bind:value={ragConfig.embedding_model.custom.api_key}
+                          placeholder="your-api-key"
+                          class="api-key-input"
+                        />
+                      {:else}
+                        <input 
+                          type="password"
+                          bind:value={ragConfig.embedding_model.custom.api_key}
+                          placeholder="your-api-key"
+                          class="api-key-input"
+                        />
+                      {/if}
                       <button 
                         type="button"
                         class="toggle-key-button"
@@ -1404,16 +1482,16 @@
        {:else if selectedTab === 'rag-test'}
          <div class="rag-test-container">
            <div class="test-header">
-             <h2>🧪 RAG Testing Interface</h2>
-             <p>Test your RAG configuration and see detailed results</p>
+             <h2 class="nav-text-transition">🧪 {$t.test_title}</h2>
+             <p class="nav-description-transition">{$t.test_subtitle}</p>
            </div>
            
            <div class="test-input-section">
-             <label for="test-query">Test Query:</label>
+             <label for="test-query" class="nav-text-transition">{$t.test_query_label}</label>
              <textarea
                id="test-query"
                bind:value={testQuery}
-               placeholder="Enter your test question here..."
+               placeholder={$t.test_query_placeholder}
                rows="3"
                class="test-input"
              ></textarea>
@@ -2848,5 +2926,304 @@
 
   :global(.dark) .model-meta {
     color: #86efac;
+  }
+
+  /* Modern Welcome Interface */
+  .chat-welcome {
+    text-align: center;
+    padding: 3rem;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+    border-radius: 20px;
+    margin: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .welcome-animation {
+    position: relative;
+    margin-bottom: 2rem;
+  }
+
+  .floating-particles {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+  }
+
+  .particle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    border-radius: 50%;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .particle:nth-child(1) {
+    top: 20%;
+    left: 20%;
+    animation-delay: 0s;
+    background: linear-gradient(45deg, #f093fb, #f5576c);
+  }
+
+  .particle:nth-child(2) {
+    top: 20%;
+    right: 20%;
+    animation-delay: 0.6s;
+    background: linear-gradient(45deg, #4facfe, #00f2fe);
+  }
+
+  .particle:nth-child(3) {
+    bottom: 20%;
+    left: 20%;
+    animation-delay: 1.2s;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+  }
+
+  .particle:nth-child(4) {
+    bottom: 20%;
+    right: 20%;
+    animation-delay: 1.8s;
+    background: linear-gradient(45deg, #f093fb, #f5576c);
+  }
+
+  .particle:nth-child(5) {
+    top: 50%;
+    left: 50%;
+    animation-delay: 2.4s;
+    background: linear-gradient(45deg, #4facfe, #00f2fe);
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px) scale(1);
+      opacity: 0.7;
+    }
+    50% {
+      transform: translateY(-20px) scale(1.2);
+      opacity: 1;
+    }
+  }
+
+  .welcome-avatar {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    animation: bounce 2s ease-in-out infinite;
+    position: relative;
+    z-index: 2;
+  }
+
+  @keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+      transform: translateY(0);
+    }
+    40% {
+      transform: translateY(-10px);
+    }
+    60% {
+      transform: translateY(-5px);
+    }
+  }
+
+  .welcome-title {
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 1rem;
+  }
+
+  .welcome-desc {
+    font-size: 1.1rem;
+    color: #6b7280;
+    margin-bottom: 2rem;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .welcome-suggestions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .suggestion-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    font-weight: 500;
+  }
+
+  .suggestion-card:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.9);
+  }
+
+  .suggestion-icon {
+    font-size: 1.5rem;
+  }
+
+  :global(.dark) .chat-welcome {
+    background: linear-gradient(135deg, rgba(26, 32, 44, 0.8) 0%, rgba(45, 55, 72, 0.8) 100%);
+  }
+
+  :global(.dark) .welcome-desc {
+    color: #a0aec0;
+  }
+
+  :global(.dark) .suggestion-card {
+    background: rgba(45, 55, 72, 0.7);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #f7fafc;
+  }
+
+  :global(.dark) .suggestion-card:hover {
+    background: rgba(45, 55, 72, 0.9);
+  }
+
+  /* Enhanced Upload Area */
+  .upload-area {
+    border: 2px dashed rgba(102, 126, 234, 0.3);
+    border-radius: 20px;
+    padding: 3rem;
+    margin: 2rem 0;
+    text-align: center;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .upload-area:hover {
+    border-color: rgba(102, 126, 234, 0.6);
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    transform: scale(1.02);
+  }
+
+  .upload-area.drag-over {
+    border-color: #4facfe;
+    background: linear-gradient(135deg, rgba(79, 172, 254, 0.15) 0%, rgba(0, 242, 254, 0.15) 100%);
+    transform: scale(1.05);
+    box-shadow: 0 20px 40px rgba(79, 172, 254, 0.2);
+  }
+
+  .upload-animation {
+    position: relative;
+    margin-bottom: 2rem;
+  }
+
+  .upload-icon-animated {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    animation: uploadPulse 2s ease-in-out infinite;
+    position: relative;
+    z-index: 2;
+  }
+
+  .upload-ripple {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100px;
+    height: 100px;
+    border: 3px solid rgba(102, 126, 234, 0.3);
+    border-radius: 50%;
+    animation: ripple 2s ease-out infinite;
+  }
+
+  @keyframes uploadPulse {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+  }
+
+  @keyframes ripple {
+    0% {
+      transform: translate(-50%, -50%) scale(0.5);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(-50%, -50%) scale(2);
+      opacity: 0;
+    }
+  }
+
+  .upload-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+  }
+
+  .upload-formats {
+    color: #6b7280;
+    margin-bottom: 2rem;
+  }
+
+  .upload-features {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .upload-feature {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    backdrop-filter: blur(5px);
+  }
+
+  .feature-icon {
+    font-size: 1.2rem;
+  }
+
+  :global(.dark) .upload-area {
+    background: linear-gradient(135deg, rgba(26, 32, 44, 0.8) 0%, rgba(45, 55, 72, 0.8) 100%);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  :global(.dark) .upload-area:hover {
+    border-color: rgba(79, 172, 254, 0.6);
+    background: linear-gradient(135deg, rgba(26, 32, 44, 0.9) 0%, rgba(45, 55, 72, 0.9) 100%);
+  }
+
+  :global(.dark) .upload-title {
+    color: #f7fafc;
+  }
+
+  :global(.dark) .upload-formats {
+    color: #a0aec0;
+  }
+
+  :global(.dark) .upload-feature {
+    background: rgba(45, 55, 72, 0.7);
+    color: #f7fafc;
   }
 </style>

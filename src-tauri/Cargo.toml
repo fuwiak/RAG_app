@@ -43,8 +43,6 @@ linfa = "0.7"
 linfa-clustering = "0.7"
 hf-hub = { version = "0.3", features = ["tokio"] }
 tokenizers = "0.19"
-candle-core = { version = "0.4", optional = true }
-candle-nn = { version = "0.4", optional = true }
 faiss = { version = "0.12", optional = true }
 
 # System monitoring
@@ -54,7 +52,7 @@ log = "0.4"
 env_logger = "0.10"
 
 [features]
-default = ["local-embeddings"]
-local-embeddings = ["candle-core", "candle-nn"]
+default = ["faiss-db"]
+local-embeddings = []
 faiss-db = ["faiss"]
 

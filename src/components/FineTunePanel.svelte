@@ -2,6 +2,7 @@
   import { invoke } from '@tauri-apps/api/core';
   import { listen } from '@tauri-apps/api/event';
   import { onDestroy } from 'svelte';
+  import { t } from '../lib/i18n';
 
   // Fine-tuning configuration interface
   interface FineTuneConfig {
@@ -223,8 +224,8 @@
     <!-- Header -->
     <header class="header">
       <div class="header-content">
-        <h1 class="app-title">🎯 Advanced Fine-Tuning</h1>
-        <p class="app-subtitle">Professional model training with LoRA, QLoRA, and RAG optimization</p>
+        <h1 class="app-title nav-text-transition">🎯 {$t.finetune_title}</h1>
+        <p class="app-subtitle nav-description-transition">{$t.finetune_subtitle}</p>
       </div>
       
       <!-- Navigation tabs -->
@@ -233,25 +234,25 @@
           class="tab {selectedTab === 'config' ? 'active' : ''}"
           on:click={() => selectedTab = 'config'}
         >
-          ⚙️ Configuration
+          ⚙️ <span class="nav-text-transition">{$t.finetune_config}</span>
         </button>
         <button 
           class="tab {selectedTab === 'models' ? 'active' : ''}"
           on:click={() => selectedTab = 'models'}
         >
-          🤖 Models
+          🤖 <span class="nav-text-transition">{$t.finetune_models}</span>
         </button>
         <button 
           class="tab {selectedTab === 'logs' ? 'active' : ''}"
           on:click={() => selectedTab = 'logs'}
         >
-          📋 Training Logs
+          📋 <span class="nav-text-transition">{$t.finetune_logs}</span>
         </button>
         <button 
           class="tab {selectedTab === 'metrics' ? 'active' : ''}"
           on:click={() => selectedTab = 'metrics'}
         >
-          📊 Loss Charts
+          📊 <span class="nav-text-transition">{$t.finetune_charts}</span>
         </button>
       </nav>
     </header>
@@ -304,7 +305,7 @@
               <div class="form-group">
                 <label>🌍 Target Language:</label>
                 <div class="language-selector">
-                  {#each (['en', 'pl', 'ru', 'de', 'fr'] as const) as lang}
+                  {#each ['en', 'pl', 'ru', 'de', 'fr'] as lang}
                     <button 
                       class="language-btn {config.language === lang ? 'active' : ''}"
                       on:click={() => config.language = lang}

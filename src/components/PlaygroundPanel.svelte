@@ -1,6 +1,7 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
   import { onMount } from 'svelte';
+  import { t } from '../lib/i18n';
 
   type Mode = 'base' | 'fine' | 'rag' | 'hybrid';
   
@@ -315,8 +316,8 @@
     <!-- Header -->
     <header class="header">
       <div class="header-content">
-        <h1 class="app-title">🎮 Playground</h1>
-        <p class="app-subtitle">Test and interact with your AI models</p>
+        <h1 class="app-title nav-text-transition">🎮 {$t.playground_title}</h1>
+        <p class="app-subtitle nav-description-transition">{$t.playground_subtitle}</p>
       </div>
       
       <!-- Navigation tabs -->
@@ -357,7 +358,7 @@
           <div class="mode-selection">
             <h3>🎯 Model Mode</h3>
             <div class="mode-grid">
-              {#each (['base', 'fine', 'rag', 'hybrid'] as Mode[]) as modeOption}
+                              {#each ['base', 'fine', 'rag', 'hybrid'] as modeOption}
                 <button 
                   class="mode-card {mode === modeOption ? 'active' : ''}"
                   on:click={() => mode = modeOption}

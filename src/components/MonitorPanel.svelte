@@ -2,6 +2,7 @@
   import { invoke } from '@tauri-apps/api/core';
   import { listen } from '@tauri-apps/api/event';
   import { onMount, onDestroy } from 'svelte';
+  import { t } from '../lib/i18n';
   
   let selectedTab: 'overview' | 'system' | 'tokens' | 'logs' | 'metrics' = 'overview';
   
@@ -251,8 +252,8 @@
     <!-- Header -->
     <header class="header">
       <div class="header-content">
-        <h1 class="app-title">📊 Monitor</h1>
-        <p class="app-subtitle">Real-time system monitoring and analytics</p>
+        <h1 class="app-title nav-text-transition">📊 {$t.monitor_title}</h1>
+        <p class="app-subtitle nav-description-transition">{$t.monitor_subtitle}</p>
       </div>
       
       <!-- Navigation tabs -->
@@ -261,31 +262,31 @@
           class="tab {selectedTab === 'overview' ? 'active' : ''}"
           on:click={() => selectedTab = 'overview'}
         >
-          📋 Overview
+          📋 <span class="nav-text-transition">{$t.monitor_overview}</span>
         </button>
         <button 
           class="tab {selectedTab === 'system' ? 'active' : ''}"
           on:click={() => selectedTab = 'system'}
         >
-          🖥️ System
+          🖥️ <span class="nav-text-transition">{$t.monitor_system}</span>
         </button>
         <button 
           class="tab {selectedTab === 'tokens' ? 'active' : ''}"
           on:click={() => selectedTab = 'tokens'}
         >
-          🔢 Tokens
+          🔢 <span class="nav-text-transition">{$t.monitor_tokens}</span>
         </button>
         <button 
           class="tab {selectedTab === 'metrics' ? 'active' : ''}"
           on:click={() => selectedTab = 'metrics'}
         >
-          📈 Metrics
+          📈 <span class="nav-text-transition">{$t.monitor_metrics}</span>
         </button>
         <button 
           class="tab {selectedTab === 'logs' ? 'active' : ''}"
           on:click={() => selectedTab = 'logs'}
         >
-          📝 Logs ({logs.length})
+          📝 <span class="nav-text-transition">{$t.monitor_logs} ({logs.length})</span>
         </button>
       </nav>
     </header>

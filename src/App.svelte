@@ -670,14 +670,14 @@
   .app-layout .content-wrapper :global(.test-button),
   .app-layout .content-wrapper :global(.chart-btn),
   .app-layout .content-wrapper :global(button:not(.tab):not(.nav-item):not(.theme-toggle):not(.language-toggle)) {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%) !important;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
     border: none !important;
     color: white !important;
     font-weight: 600 !important;
     border-radius: 12px !important;
     padding: 0.75rem 1.5rem !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3) !important;
+    box-shadow: 0 8px 25px rgba(245, 87, 108, 0.3) !important;
     position: relative !important;
     overflow: hidden !important;
   }
@@ -693,7 +693,8 @@
   .app-layout .content-wrapper :global(.chart-btn:hover),
   .app-layout .content-wrapper :global(button:not(.tab):not(.nav-item):not(.theme-toggle):not(.language-toggle):hover) {
     transform: translateY(-2px) scale(1.02) !important;
-    box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4) !important;
+    box-shadow: 0 12px 35px rgba(245, 87, 108, 0.4) !important;
+    background: linear-gradient(135deg, #f093fb 0%, #e91e63 100%) !important;
   }
 
   /* Dark theme buttons and interactive elements */
@@ -707,9 +708,9 @@
   .app-layout.dark .content-wrapper :global(.test-button),
   .app-layout.dark .content-wrapper :global(.chart-btn),
   .app-layout.dark .content-wrapper :global(button:not(.tab):not(.nav-item):not(.theme-toggle):not(.language-toggle)) {
-    background: linear-gradient(135deg, #8b45ff 0%, #ff1493 25%, #00bfff 50%, #ff6b6b 75%, #4ecdc4 100%) !important;
+    background: linear-gradient(135deg, #ff1493 0%, #f5576c 100%) !important;
     border: none !important;
-    box-shadow: 0 8px 25px rgba(139, 69, 255, 0.4) !important;
+    box-shadow: 0 8px 25px rgba(255, 20, 147, 0.4) !important;
   }
 
   .app-layout.dark .content-wrapper :global(.primary-button:hover),
@@ -723,7 +724,8 @@
   .app-layout.dark .content-wrapper :global(.chart-btn:hover),
   .app-layout.dark .content-wrapper :global(button:not(.tab):not(.nav-item):not(.theme-toggle):not(.language-toggle):hover) {
     transform: translateY(-2px) scale(1.02) !important;
-    box-shadow: 0 12px 35px rgba(139, 69, 255, 0.5) !important;
+    box-shadow: 0 12px 35px rgba(255, 20, 147, 0.5) !important;
+    background: linear-gradient(135deg, #ff1493 0%, #dc143c 100%) !important;
   }
 
   /* Dark theme tabs */

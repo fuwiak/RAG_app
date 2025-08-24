@@ -1628,24 +1628,44 @@
   :global(.dark) .empty-logs,
   :global(.dark) .logs-content,
   :global(.dark) .logs-header {
-    background: #2d3748;
-    color: #f7fafc;
+    background: rgba(15, 12, 41, 0.9);
+    color: #f1f5f9;
+    border: 1px solid rgba(139, 69, 255, 0.3);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 20px rgba(139, 69, 255, 0.1);
   }
 
   :global(.dark) .number-input,
   :global(.dark) .text-input,
   :global(.dark) .model-select,
   :global(.dark) .template-select {
-    background: #4a5568;
-    border-color: #718096;
-    color: #f7fafc;
+    background: rgba(30, 30, 60, 0.9);
+    color: #f1f5f9;
+    border: 1px solid rgba(139, 69, 255, 0.4);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2), 0 0 10px rgba(139, 69, 255, 0.1);
+  }
+
+  :global(.dark) .number-input:focus,
+  :global(.dark) .text-input:focus,
+  :global(.dark) .model-select:focus,
+  :global(.dark) .template-select:focus {
+    border-color: rgba(139, 69, 255, 0.7);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), 0 0 20px rgba(139, 69, 255, 0.3);
   }
 
   :global(.dark) .checkbox-label,
   :global(.dark) .method-label {
-    background: #4a5568;
-    border-color: #718096;
-    color: #f7fafc;
+    background: rgba(30, 30, 60, 0.8);
+    border: 1px solid rgba(139, 69, 255, 0.3);
+    color: #f1f5f9;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2), 0 0 10px rgba(139, 69, 255, 0.1);
+  }
+
+  :global(.dark) .checkbox-label:hover,
+  :global(.dark) .method-label:hover {
+    background: rgba(30, 30, 60, 0.9);
+    border-color: rgba(139, 69, 255, 0.5);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3), 0 0 15px rgba(139, 69, 255, 0.2);
   }
 
   :global(.dark) .language-btn {

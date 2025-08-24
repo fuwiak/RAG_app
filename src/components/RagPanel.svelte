@@ -786,15 +786,15 @@
                   <div class="welcome-suggestions">
                     <div class="suggestion-card" on:click={() => currentMessage = 'What are the main topics in my documents?'}>
                       <span class="suggestion-icon">📊</span>
-                      <span>Summarize topics</span>
+                      <span class="nav-text-transition">{$t.summarize_topics}</span>
                     </div>
                     <div class="suggestion-card" on:click={() => currentMessage = 'Find key insights from the latest reports'}>
                       <span class="suggestion-icon">💡</span>
-                      <span>Key insights</span>
+                      <span class="nav-text-transition">{$t.key_insights}</span>
                     </div>
                     <div class="suggestion-card" on:click={() => currentMessage = 'What are the important dates and deadlines?'}>
                       <span class="suggestion-icon">📅</span>
-                      <span>Important dates</span>
+                      <span class="nav-text-transition">{$t.important_dates}</span>
                     </div>
                   </div>
                 </div>
@@ -876,15 +876,15 @@
               <div class="upload-features">
                 <div class="upload-feature">
                   <span class="feature-icon">⚡</span>
-                  <span>Instant processing</span>
+                  <span class="nav-text-transition">{$t.instant_processing}</span>
                 </div>
                 <div class="upload-feature">
                   <span class="feature-icon">🔒</span>
-                  <span>Secure & private</span>
+                  <span class="nav-text-transition">{$t.secure_private}</span>
                 </div>
                 <div class="upload-feature">
                   <span class="feature-icon">📊</span>
-                  <span>AI-powered analysis</span>
+                  <span class="nav-text-transition">{$t.ai_powered_analysis}</span>
                 </div>
               </div>
             </div>
@@ -3080,21 +3080,27 @@
   }
 
   :global(.dark) .chat-welcome {
-    background: linear-gradient(135deg, rgba(26, 32, 44, 0.8) 0%, rgba(45, 55, 72, 0.8) 100%);
+    background: linear-gradient(135deg, rgba(15, 12, 41, 0.95) 0%, rgba(30, 30, 60, 0.95) 100%);
+    border: 1px solid rgba(139, 69, 255, 0.3);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(139, 69, 255, 0.2);
   }
 
   :global(.dark) .welcome-desc {
-    color: #a0aec0;
+    color: #e2e8f0;
   }
 
   :global(.dark) .suggestion-card {
-    background: rgba(45, 55, 72, 0.7);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: #f7fafc;
+    background: rgba(30, 30, 60, 0.8);
+    border: 1px solid rgba(139, 69, 255, 0.4);
+    color: #f1f5f9;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 15px rgba(139, 69, 255, 0.2);
   }
 
   :global(.dark) .suggestion-card:hover {
-    background: rgba(45, 55, 72, 0.9);
+    background: rgba(30, 30, 60, 0.95);
+    border-color: rgba(139, 69, 255, 0.6);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4), 0 0 25px rgba(139, 69, 255, 0.4);
+    transform: translateY(-2px) scale(1.02);
   }
 
   /* Enhanced Upload Area */
@@ -3205,25 +3211,35 @@
   }
 
   :global(.dark) .upload-area {
-    background: linear-gradient(135deg, rgba(26, 32, 44, 0.8) 0%, rgba(45, 55, 72, 0.8) 100%);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, rgba(15, 12, 41, 0.9) 0%, rgba(30, 30, 60, 0.9) 100%);
+    border: 2px dashed rgba(139, 69, 255, 0.4);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(139, 69, 255, 0.1);
   }
 
   :global(.dark) .upload-area:hover {
-    border-color: rgba(79, 172, 254, 0.6);
-    background: linear-gradient(135deg, rgba(26, 32, 44, 0.9) 0%, rgba(45, 55, 72, 0.9) 100%);
+    border-color: rgba(139, 69, 255, 0.7);
+    background: linear-gradient(135deg, rgba(15, 12, 41, 0.95) 0%, rgba(30, 30, 60, 0.95) 100%);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4), 0 0 40px rgba(139, 69, 255, 0.3);
+  }
+
+  :global(.dark) .upload-area.drag-over {
+    border-color: rgba(255, 20, 147, 0.8);
+    background: linear-gradient(135deg, rgba(15, 12, 41, 0.98) 0%, rgba(30, 30, 60, 0.98) 100%);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 50px rgba(255, 20, 147, 0.4);
   }
 
   :global(.dark) .upload-title {
-    color: #f7fafc;
+    color: #f1f5f9;
   }
 
   :global(.dark) .upload-formats {
-    color: #a0aec0;
+    color: #cbd5e1;
   }
 
   :global(.dark) .upload-feature {
-    background: rgba(45, 55, 72, 0.7);
-    color: #f7fafc;
+    background: rgba(30, 30, 60, 0.8);
+    color: #f1f5f9;
+    border: 1px solid rgba(139, 69, 255, 0.3);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2), 0 0 10px rgba(139, 69, 255, 0.1);
   }
 </style>

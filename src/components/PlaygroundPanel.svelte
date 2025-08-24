@@ -1457,6 +1457,69 @@
     border-color: #718096;
   }
 
+  /* Cyberpunk Dark Theme */
+  :global(.dark) .mode-selector,
+  :global(.dark) .chat-interface,
+  :global(.dark) .response-section,
+  :global(.dark) .context-section {
+    background: rgba(30, 30, 60, 0.9);
+    border: 1px solid rgba(139, 69, 255, 0.3);
+    color: #f1f5f9;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 20px rgba(139, 69, 255, 0.1);
+    backdrop-filter: blur(15px);
+  }
+
+  :global(.dark) .mode-card {
+    background: rgba(25, 25, 50, 0.8);
+    border: 1px solid rgba(139, 69, 255, 0.3);
+    color: #f1f5f9;
+    transition: all 0.3s ease;
+  }
+
+  :global(.dark) .mode-card:hover {
+    border-color: rgba(139, 69, 255, 0.6);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4), 0 0 25px rgba(139, 69, 255, 0.3);
+    transform: translateY(-2px) scale(1.02);
+  }
+
+  :global(.dark) .mode-card.active {
+    background: rgba(30, 30, 60, 0.9);
+    border-color: rgba(139, 69, 255, 0.7);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(139, 69, 255, 0.4);
+  }
+
+  :global(.dark) .prompt-input,
+  :global(.dark) .model-selector select {
+    background: rgba(30, 30, 60, 0.9);
+    border: 1px solid rgba(139, 69, 255, 0.4);
+    color: #f1f5f9;
+    backdrop-filter: blur(10px);
+  }
+
+  :global(.dark) .prompt-input:focus,
+  :global(.dark) .model-selector select:focus {
+    border-color: rgba(139, 69, 255, 0.7);
+    box-shadow: 0 0 20px rgba(139, 69, 255, 0.3);
+  }
+
+  :global(.dark) .response-content,
+  :global(.dark) .context-content {
+    background: rgba(15, 12, 41, 0.9);
+    border: 1px solid rgba(139, 69, 255, 0.2);
+    color: #f1f5f9;
+  }
+
+  :global(.dark) .source-chunk {
+    background: rgba(25, 25, 50, 0.8);
+    border: 1px solid rgba(139, 69, 255, 0.3);
+    color: #f1f5f9;
+  }
+
+  :global(.dark) .source-chunk:hover {
+    border-color: rgba(139, 69, 255, 0.5);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 15px rgba(139, 69, 255, 0.2);
+  }
+
   /* Responsive Design */
   @media (max-width: 768px) {
     .mode-grid {

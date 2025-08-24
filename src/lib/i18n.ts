@@ -46,6 +46,16 @@ export const translations = {
     documents_upload_first: 'Upload your first document to get started.',
     documents_start_chatting: 'Upload some documents to start chatting with your knowledge base.',
     
+    // Upload features
+    instant_processing: 'Instant processing',
+    secure_private: 'Secure & private',
+    ai_powered_analysis: 'AI-powered analysis',
+    
+    // Chat suggestions
+    summarize_topics: 'Summarize topics',
+    key_insights: 'Key insights',
+    important_dates: 'Important dates',
+    
     // Search
     search_placeholder: 'Search in documents... e.g., "machine learning algorithms"',
     search_button: 'Search',
@@ -178,6 +188,16 @@ export const translations = {
     documents_library: 'Библиотека документов',
     documents_upload_first: 'Загрузите ваш первый документ для начала работы.',
     documents_start_chatting: 'Загрузите документы, чтобы начать общение с вашей базой знаний.',
+    
+    // Upload features
+    instant_processing: 'Мгновенная обработка',
+    secure_private: 'Безопасно и приватно',
+    ai_powered_analysis: 'ИИ-анализ данных',
+    
+    // Chat suggestions
+    summarize_topics: 'Обзор тем',
+    key_insights: 'Ключевые выводы',
+    important_dates: 'Важные даты',
     
     // Search
     search_placeholder: 'Поиск в документах... например: "алгоритмы машинного обучения"',

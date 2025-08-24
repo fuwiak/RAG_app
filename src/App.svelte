@@ -38,14 +38,14 @@
           <span class="language-flag">{$currentLanguage === 'en' ? '🇺🇸' : '🇷🇺'}</span>
           <span class="language-code">{$currentLanguage.toUpperCase()}</span>
         </button>
-        
-        <!-- Dark Mode Toggle -->
-        <label class="theme-toggle">
-          <input type="checkbox" bind:checked={$darkMode} />
-          <span class="theme-slider">
-            <span class="theme-icon">{$darkMode ? '🌙' : '☀️'}</span>
-          </span>
-        </label>
+      
+      <!-- Dark Mode Toggle -->
+      <label class="theme-toggle">
+        <input type="checkbox" bind:checked={$darkMode} />
+        <span class="theme-slider">
+          <span class="theme-icon">{$darkMode ? '🌙' : '☀️'}</span>
+        </span>
+      </label>
       </div>
     </div>
 
@@ -605,28 +605,38 @@
   .app-layout.dark .content-wrapper :global(.history-item),
   .app-layout.dark .content-wrapper :global(.response-section),
   .app-layout.dark .content-wrapper :global(.context-section) {
-    background: rgba(26, 26, 46, 0.8) !important;
-    border: 1px solid rgba(139, 69, 255, 0.2) !important;
-    color: #f9fafb !important;
-    backdrop-filter: blur(10px) !important;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2) !important;
+    background: rgba(30, 30, 60, 0.9) !important;
+    border: 1px solid rgba(139, 69, 255, 0.3) !important;
+    color: #f1f5f9 !important;
+    backdrop-filter: blur(15px) !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 20px rgba(139, 69, 255, 0.1) !important;
   }
 
   .app-layout.dark .content-wrapper :global(.config-header h2),
   .app-layout.dark .content-wrapper :global(.config-header p),
   .app-layout.dark .content-wrapper :global(.config-section h3),
   .app-layout.dark .content-wrapper :global(.test-header h2),
-  .app-layout.dark .content-wrapper :global(.test-header p) {
-    color: #f9fafb !important;
+  .app-layout.dark .content-wrapper :global(.test-header p),
+  .app-layout.dark .content-wrapper :global(h1),
+  .app-layout.dark .content-wrapper :global(h2),
+  .app-layout.dark .content-wrapper :global(h3),
+  .app-layout.dark .content-wrapper :global(h4),
+  .app-layout.dark .content-wrapper :global(p),
+  .app-layout.dark .content-wrapper :global(span),
+  .app-layout.dark .content-wrapper :global(label) {
+    color: #f1f5f9 !important;
   }
 
   .app-layout.dark .content-wrapper :global(.text-input),
   .app-layout.dark .content-wrapper :global(.file-input),
-  .app-layout.dark .content-wrapper :global(.chat-input) {
-    background: rgba(26, 26, 46, 0.9) !important;
-    border: 1px solid rgba(139, 69, 255, 0.3) !important;
-    color: #f9fafb !important;
-    backdrop-filter: blur(10px) !important;
+  .app-layout.dark .content-wrapper :global(.chat-input),
+  .app-layout.dark .content-wrapper :global(input),
+  .app-layout.dark .content-wrapper :global(textarea),
+  .app-layout.dark .content-wrapper :global(select) {
+    background: rgba(30, 30, 60, 0.95) !important;
+    border: 1px solid rgba(139, 69, 255, 0.4) !important;
+    color: #f1f5f9 !important;
+    backdrop-filter: blur(15px) !important;
   }
 
   .app-layout.dark .content-wrapper :global(.text-input:focus),
@@ -638,38 +648,136 @@
 
   .app-layout.dark .content-wrapper :global(.response-content),
   .app-layout.dark .content-wrapper :global(.context-content),
-  .app-layout.dark .content-wrapper :global(.file-info) {
-    background: rgba(15, 12, 41, 0.8) !important;
-    color: #e5e7eb !important;
-    border: 1px solid rgba(139, 69, 255, 0.2) !important;
-    backdrop-filter: blur(10px) !important;
+  .app-layout.dark .content-wrapper :global(.file-info),
+  .app-layout.dark .content-wrapper :global(.document-card),
+  .app-layout.dark .content-wrapper :global(.search-result),
+  .app-layout.dark .content-wrapper :global(.message),
+  .app-layout.dark .content-wrapper :global(.log-entry) {
+    background: rgba(25, 25, 50, 0.9) !important;
+    color: #f1f5f9 !important;
+    border: 1px solid rgba(139, 69, 255, 0.3) !important;
+    backdrop-filter: blur(15px) !important;
+  }
+
+  /* Universal gradient button styling for all buttons - Light theme */
+  .app-layout .content-wrapper :global(.primary-button),
+  .app-layout .content-wrapper :global(.send-button),
+  .app-layout .content-wrapper :global(.secondary-button),
+  .app-layout .content-wrapper :global(.delete-button),
+  .app-layout .content-wrapper :global(.search-button),
+  .app-layout .content-wrapper :global(.upload-button),
+  .app-layout .content-wrapper :global(.config-button),
+  .app-layout .content-wrapper :global(.test-button),
+  .app-layout .content-wrapper :global(.chart-btn),
+  .app-layout .content-wrapper :global(button:not(.tab):not(.nav-item):not(.theme-toggle):not(.language-toggle)) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%) !important;
+    border: none !important;
+    color: white !important;
+    font-weight: 600 !important;
+    border-radius: 12px !important;
+    padding: 0.75rem 1.5rem !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3) !important;
+    position: relative !important;
+    overflow: hidden !important;
+  }
+
+  .app-layout .content-wrapper :global(.primary-button:hover),
+  .app-layout .content-wrapper :global(.send-button:hover),
+  .app-layout .content-wrapper :global(.secondary-button:hover),
+  .app-layout .content-wrapper :global(.delete-button:hover),
+  .app-layout .content-wrapper :global(.search-button:hover),
+  .app-layout .content-wrapper :global(.upload-button:hover),
+  .app-layout .content-wrapper :global(.config-button:hover),
+  .app-layout .content-wrapper :global(.test-button:hover),
+  .app-layout .content-wrapper :global(.chart-btn:hover),
+  .app-layout .content-wrapper :global(button:not(.tab):not(.nav-item):not(.theme-toggle):not(.language-toggle):hover) {
+    transform: translateY(-2px) scale(1.02) !important;
+    box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4) !important;
   }
 
   /* Dark theme buttons and interactive elements */
   .app-layout.dark .content-wrapper :global(.primary-button),
-  .app-layout.dark .content-wrapper :global(.send-button) {
-    background: linear-gradient(135deg, #8b45ff 0%, #ff1493 100%) !important;
+  .app-layout.dark .content-wrapper :global(.send-button),
+  .app-layout.dark .content-wrapper :global(.secondary-button),
+  .app-layout.dark .content-wrapper :global(.delete-button),
+  .app-layout.dark .content-wrapper :global(.search-button),
+  .app-layout.dark .content-wrapper :global(.upload-button),
+  .app-layout.dark .content-wrapper :global(.config-button),
+  .app-layout.dark .content-wrapper :global(.test-button),
+  .app-layout.dark .content-wrapper :global(.chart-btn),
+  .app-layout.dark .content-wrapper :global(button:not(.tab):not(.nav-item):not(.theme-toggle):not(.language-toggle)) {
+    background: linear-gradient(135deg, #8b45ff 0%, #ff1493 25%, #00bfff 50%, #ff6b6b 75%, #4ecdc4 100%) !important;
     border: none !important;
-    box-shadow: 0 8px 25px rgba(139, 69, 255, 0.3) !important;
+    box-shadow: 0 8px 25px rgba(139, 69, 255, 0.4) !important;
   }
 
   .app-layout.dark .content-wrapper :global(.primary-button:hover),
-  .app-layout.dark .content-wrapper :global(.send-button:hover) {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 12px 35px rgba(139, 69, 255, 0.4) !important;
+  .app-layout.dark .content-wrapper :global(.send-button:hover),
+  .app-layout.dark .content-wrapper :global(.secondary-button:hover),
+  .app-layout.dark .content-wrapper :global(.delete-button:hover),
+  .app-layout.dark .content-wrapper :global(.search-button:hover),
+  .app-layout.dark .content-wrapper :global(.upload-button:hover),
+  .app-layout.dark .content-wrapper :global(.config-button:hover),
+  .app-layout.dark .content-wrapper :global(.test-button:hover),
+  .app-layout.dark .content-wrapper :global(.chart-btn:hover),
+  .app-layout.dark .content-wrapper :global(button:not(.tab):not(.nav-item):not(.theme-toggle):not(.language-toggle):hover) {
+    transform: translateY(-2px) scale(1.02) !important;
+    box-shadow: 0 12px 35px rgba(139, 69, 255, 0.5) !important;
   }
 
   /* Dark theme tabs */
   .app-layout.dark .content-wrapper :global(.tab) {
-    background: rgba(26, 26, 46, 0.7) !important;
-    border: 1px solid rgba(139, 69, 255, 0.2) !important;
-    color: #e5e7eb !important;
+    background: rgba(30, 30, 60, 0.8) !important;
+    border: 1px solid rgba(139, 69, 255, 0.3) !important;
+    color: #f1f5f9 !important;
+    backdrop-filter: blur(10px) !important;
+    transition: all 0.3s ease !important;
+  }
+
+  .app-layout.dark .content-wrapper :global(.tab:hover) {
+    background: rgba(30, 30, 60, 0.9) !important;
+    border-color: rgba(139, 69, 255, 0.5) !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 15px rgba(139, 69, 255, 0.2) !important;
+    transform: translateY(-1px) !important;
   }
 
   .app-layout.dark .content-wrapper :global(.tab.active) {
-    background: linear-gradient(135deg, rgba(139, 69, 255, 0.3) 0%, rgba(255, 20, 147, 0.3) 100%) !important;
-    border-color: rgba(139, 69, 255, 0.5) !important;
-    box-shadow: 0 0 20px rgba(139, 69, 255, 0.3) !important;
+    background: linear-gradient(135deg, rgba(139, 69, 255, 0.4) 0%, rgba(255, 20, 147, 0.4) 100%) !important;
+    border-color: rgba(139, 69, 255, 0.7) !important;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4), 0 0 25px rgba(139, 69, 255, 0.4) !important;
+    color: white !important;
+  }
+
+  /* Enhanced cards and containers for dark theme */
+  .app-layout.dark .content-wrapper :global(.card),
+  .app-layout.dark .content-wrapper :global(.panel),
+  .app-layout.dark .content-wrapper :global(.container) {
+    background: rgba(30, 30, 60, 0.9) !important;
+    border: 1px solid rgba(139, 69, 255, 0.3) !important;
+    backdrop-filter: blur(15px) !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 20px rgba(139, 69, 255, 0.1) !important;
+  }
+
+  /* Enhanced scrollbars for dark theme */
+  .app-layout.dark .content-wrapper :global(::-webkit-scrollbar) {
+    width: 8px;
+    height: 8px;
+  }
+
+  .app-layout.dark .content-wrapper :global(::-webkit-scrollbar-track) {
+    background: rgba(15, 12, 41, 0.5);
+    border-radius: 4px;
+  }
+
+  .app-layout.dark .content-wrapper :global(::-webkit-scrollbar-thumb) {
+    background: linear-gradient(135deg, rgba(139, 69, 255, 0.6) 0%, rgba(255, 20, 147, 0.6) 100%);
+    border-radius: 4px;
+    border: 1px solid rgba(139, 69, 255, 0.3);
+  }
+
+  .app-layout.dark .content-wrapper :global(::-webkit-scrollbar-thumb:hover) {
+    background: linear-gradient(135deg, rgba(139, 69, 255, 0.8) 0%, rgba(255, 20, 147, 0.8) 100%);
   }
 
   /* Responsive Design */

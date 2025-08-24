@@ -1322,6 +1322,84 @@
     font-size: 1.1rem;
   }
 
+  /* Cyberpunk Dark Theme */
+  :global(.dark) .overview-grid,
+  :global(.dark) .system-grid,
+  :global(.dark) .tokens-grid {
+    gap: 1.5rem;
+  }
+
+  :global(.dark) .stat-card,
+  :global(.dark) .metric-card,
+  :global(.dark) .log-entry {
+    background: rgba(30, 30, 60, 0.9);
+    border: 1px solid rgba(139, 69, 255, 0.3);
+    color: #f1f5f9;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 20px rgba(139, 69, 255, 0.1);
+    backdrop-filter: blur(15px);
+  }
+
+  :global(.dark) .stat-card:hover,
+  :global(.dark) .metric-card:hover {
+    border-color: rgba(139, 69, 255, 0.5);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4), 0 0 30px rgba(139, 69, 255, 0.2);
+    transform: translateY(-2px);
+  }
+
+  :global(.dark) .stat-value,
+  :global(.dark) .metric-value {
+    background: linear-gradient(135deg, #8b45ff 0%, #ff1493 50%, #00bfff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 0 20px rgba(139, 69, 255, 0.3);
+  }
+
+  :global(.dark) .stat-label,
+  :global(.dark) .metric-label {
+    color: #cbd5e1;
+  }
+
+  :global(.dark) .empty-logs,
+  :global(.dark) .empty-state {
+    background: rgba(15, 12, 41, 0.9);
+    color: #f1f5f9;
+    border: 1px solid rgba(139, 69, 255, 0.3);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 20px rgba(139, 69, 255, 0.1);
+  }
+
+  :global(.dark) .log-level {
+    border-radius: 8px;
+    padding: 0.25rem 0.5rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+  }
+
+  :global(.dark) .log-level.info {
+    background: rgba(79, 172, 254, 0.2);
+    color: #4facfe;
+    border: 1px solid rgba(79, 172, 254, 0.3);
+  }
+
+  :global(.dark) .log-level.warn {
+    background: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+  }
+
+  :global(.dark) .log-level.error {
+    background: rgba(255, 20, 147, 0.2);
+    color: #ff1493;
+    border: 1px solid rgba(255, 20, 147, 0.3);
+  }
+
+  :global(.dark) .log-level.debug {
+    background: rgba(139, 69, 255, 0.2);
+    color: #8b45ff;
+    border: 1px solid rgba(139, 69, 255, 0.3);
+  }
+
   /* Responsive Design */
   @media (max-width: 768px) {
     .app-container {

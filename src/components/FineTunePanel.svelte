@@ -648,11 +648,11 @@
           <!-- Advanced Settings -->
           {:else if selectedSubTab === 'advanced'}
             <div class="config-section">
-              <h2>🚀 Advanced Configuration</h2>
+              <h2 class="nav-text-transition">🚀 {$t.advanced_config}</h2>
               
               <div class="parameter-grid">
                 <div class="param-group">
-                  <label>💾 Save Steps:</label>
+                  <label class="nav-text-transition">💾 {$t.save_steps}:</label>
                   <input 
                     type="number" 
                     bind:value={config.save_steps}
@@ -662,7 +662,7 @@
                 </div>
 
                 <div class="param-group">
-                  <label>📊 Evaluation Steps:</label>
+                  <label class="nav-text-transition">📊 {$t.eval_steps}:</label>
                   <input 
                     type="number" 
                     bind:value={config.eval_steps}
@@ -672,7 +672,7 @@
                 </div>
 
                 <div class="param-group">
-                  <label>📝 Logging Steps:</label>
+                  <label class="nav-text-transition">📝 {$t.logging_steps}:</label>
                   <input 
                     type="number" 
                     bind:value={config.logging_steps}
@@ -682,7 +682,7 @@
                 </div>
 
                 <div class="param-group">
-                  <label>👥 DataLoader Workers:</label>
+                  <label class="nav-text-transition">👥 {$t.dataloader_workers}:</label>
                   <input 
                     type="number" 
                     bind:value={config.dataloader_num_workers}
@@ -694,9 +694,9 @@
 
               <!-- Instruction Template -->
               <div class="form-group">
-                <label>📋 Instruction Template:</label>
+                <label class="nav-text-transition">📋 {$t.instruction_template}:</label>
                 <select bind:value={config.instruction_template} class="template-select">
-                  <option value="default">Default</option>
+                  <option value="default">{$t.default_template}</option>
                   <option value="alpaca">Alpaca Style</option>
                   <option value="chatml">ChatML</option>
                   <option value="vicuna">Vicuna</option>
@@ -709,7 +709,7 @@
           <!-- Training Action -->
           <div class="training-action">
             <div class="action-summary">
-              <h3>🎯 Training Summary</h3>
+              <h3 class="nav-text-transition">🎯 {$t.training_summary}</h3>
               <div class="summary-grid">
                 <div class="summary-item">
                   <span class="summary-label">Method:</span>
@@ -893,7 +893,7 @@
             
             <!-- Metrics Summary -->
             <div class="metrics-summary">
-              <h3>📋 Training Summary</h3>
+              <h3 class="nav-text-transition">📋 {$t.training_summary}</h3>
               <div class="metrics-grid">
                 <div class="metric-item">
                   <div class="metric-label">Current Loss</div>

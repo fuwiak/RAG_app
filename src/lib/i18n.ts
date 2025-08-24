@@ -108,6 +108,16 @@ export const translations = {
     finetune_logs_monitor: 'Monitor your fine-tuning progress in real-time',
     finetune_charts_visualize: 'Visualize training loss and performance metrics',
     
+    // Advanced Configuration
+    advanced_config: 'Advanced Configuration',
+    save_steps: 'Save Steps',
+    eval_steps: 'Evaluation Steps',
+    logging_steps: 'Logging Steps',
+    dataloader_workers: 'DataLoader Workers',
+    instruction_template: 'Instruction Template',
+    training_summary: 'Training Summary',
+    default_template: 'Default',
+    
     // Playground Panel
     playground_title: 'Playground',
     playground_subtitle: 'Interactive model testing environment',
@@ -250,6 +260,16 @@ export const translations = {
     finetune_models_manage: 'Управление обученными моделями и конфигурациями',
     finetune_logs_monitor: 'Мониторинг прогресса точной настройки в реальном времени',
     finetune_charts_visualize: 'Визуализация потерь обучения и метрик производительности',
+    
+    // Advanced Configuration
+    advanced_config: 'Продвинутая конфигурация',
+    save_steps: 'Шаги сохранения',
+    eval_steps: 'Шаги оценки',
+    logging_steps: 'Шаги логирования',
+    dataloader_workers: 'Рабочие процессы DataLoader',
+    instruction_template: 'Шаблон инструкций',
+    training_summary: 'Сводка обучения',
+    default_template: 'По умолчанию',
     
     // Playground Panel
     playground_title: 'Песочница',
